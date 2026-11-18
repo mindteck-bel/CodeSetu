@@ -2,10 +2,10 @@ name: Build CodeSetu
 
 on:
   push:
-    branches: [main, master, "feature/**"]
+    branches: [main, master, "feature/**", "naveen/**"]
     tags: ["v*"]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, "feature/**"]
   workflow_dispatch:
 
 jobs:
