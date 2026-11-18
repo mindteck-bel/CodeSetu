@@ -33,5 +33,11 @@ snapshot backup.
 ## Destructive ops
 
 - Overwrites, deletes, and moves require UI confirmation (`confirmDestructive`).
+- First sync (empty baseline) with new file creates also requires confirmation.
 - Deletion decisions are labeled **Delete locally**, never “Bring into Intranet”.
 - Incomplete / unverified brought-over trees never emit deletion classes.
+
+## Diagnostics
+
+- Local offline JSONL at `<data>/CodeSetu/logs/codesetu.jsonl` (scan/apply/undo/recover).
+- Never leaves the machine; no network.

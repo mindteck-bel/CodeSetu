@@ -45,6 +45,7 @@ export interface ScanSummary {
   moved: number;
   errors: number;
   elapsedMs: number;
+  firstSync?: boolean;
 }
 
 export interface ScanResult {
@@ -102,6 +103,7 @@ export interface ApplyPreview {
   skips: number;
   destructive: boolean;
   rowsToApply: number;
+  firstSync?: boolean;
 }
 
 export interface IgnorePattern {

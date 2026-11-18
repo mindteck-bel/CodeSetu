@@ -1,6 +1,11 @@
 import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { ChangeClass, Decision, FileRow, ReviewFilter } from "./types";
+import type {
+  ChangeClass,
+  Decision,
+  FileRow,
+  ReviewFilter,
+} from "../../shared/types";
 
 type Props = {
   rows: FileRow[];
@@ -118,6 +123,9 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
                 <span className="path">{row.relPath}</span>
                 {row.movedFrom && (
                   <span className="muted tiny">from {row.movedFrom}</span>
+                )}
+                {row.class === "needsYou" && row.error && (
+                  <span className="muted tiny conflict-hint">{row.error}</span>
                 )}
               </button>
               <div className="row-actions">

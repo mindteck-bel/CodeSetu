@@ -48,6 +48,14 @@ Use **Settings → Ignore Rules** for categories (VCS, deps, build, IDE, OS, tem
 - Path traversal rejected on all filesystem ops; hashes revalidated before apply
 - See [`docs/APPLY_TRANSACTION_PROTOCOL.md`](docs/APPLY_TRANSACTION_PROTOCOL.md) (recoverable transaction protocol — not multi-file atomicity)
 
+## Layout
+
+- `src-tauri/src/engine/` — sync engine (scan, classify, apply, snapshot, ignore, paths, diag)
+- `src-tauri/src/commands/` — thin Tauri IPC
+- `src-tauri/src/session.rs` — in-memory session state
+- `src/features/` — React feature folders (pick / scan / review / result / settings)
+- `src/shared/` — types, API, ErrorBoundary
+
 ## Tests
 
 ```bash
@@ -55,3 +63,5 @@ cd src-tauri && cargo test --locked
 npm test
 npm run build
 ```
+
+Windows desktop GUI checklist: [`docs/WINDOWS_BETA_CHECKLIST.md`](docs/WINDOWS_BETA_CHECKLIST.md).

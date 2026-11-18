@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  decisionLabelsForTest,
-  filterRows,
-} from "./ReviewList";
-import { validateIgnorePatternLocal } from "./IgnoreRulesSettings";
-import type { FileRow } from "./types";
+import { decisionLabelsForTest, filterRows } from "./ReviewList";
+import { validateIgnorePatternLocal } from "../settings/IgnoreRulesSettings";
+import type { FileRow } from "../../shared/types";
 
-function row(partial: Partial<FileRow> & Pick<FileRow, "id" | "class">): FileRow {
+function row(
+  partial: Partial<FileRow> & Pick<FileRow, "id" | "class">,
+): FileRow {
   return {
     relPath: partial.relPath ?? "a.txt",
     group: "src",

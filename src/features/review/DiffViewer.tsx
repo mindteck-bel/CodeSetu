@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getFileDiff } from "./api";
-import type { FileDiff } from "./types";
+import { getFileDiff } from "../../shared/api";
+import type { FileDiff } from "../../shared/types";
 
 type Props = {
   sessionId: string;

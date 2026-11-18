@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -11,11 +11,8 @@ import {
   undoApply,
   updateDecisions,
   validateFolder,
-} from "./api";
-import { DiffViewer } from "./DiffViewer";
-import { ErrorBoundary } from "./ErrorBoundary";
-import { IgnoreRulesSettings } from "./IgnoreRulesSettings";
-import { ReviewList } from "./ReviewList";
+} from "./shared/api";
+import { ErrorBoundary } from "./shared/ErrorBoundary";
 import type {
   ApplyPreview,
   ApplyReport,
@@ -25,8 +22,14 @@ import type {
   ReviewFilter,
   ScanResult,
   Step,
-} from "./types";
-import "./App.css";
+} from "./shared/types";
+import { ApplyConfirmModal } from "./features/confirm/ApplyConfirmModal";
+import { PickStep } from "./features/pick/PickStep";
+import { ResultStep } from "./features/result/ResultStep";
+import { ReviewStep } from "./features/review/ReviewStep";
+import { ScanStep } from "./features/scan/ScanStep";
+import { IgnoreRulesSettings } from "./features/settings/IgnoreRulesSettings";
+import "./styles/App.css";
 
 export default function App() {
   const [step, setStep] = useState<Step>("pick");
@@ -169,12 +172,6 @@ export default function App() {
     }
   };
 
-  const summaryLine = useMemo(() => {
-    if (!result) return "";
-    const s = result.summary;
-    return `${s.bringIn} bring into Intranet · ${s.keep} keep Intranet · ${s.needsYou} need you · ${s.deletedBrought} deletions · ${s.intranetOnly} intranet-only · ${s.internetOnly} internet-only`;
-  }, [result]);
-
   const openConfirm = async () => {
     if (!sessionId) return;
     if (rulesDirty) {
@@ -280,10 +277,6 @@ export default function App() {
 
       <main className="stage">
         <ErrorBoundary fallbackTitle="Main view failed">
-          {recoveryNote && step === "pick" && (
-            <p className="warn-line">{recoveryNote}</p>
-          )}
-
           {step === "settings" && (
             <IgnoreRulesSettings
               projectPath={thisPc || undefined}
@@ -293,297 +286,63 @@ export default function App() {
           )}
 
           {step === "pick" && (
-            <section className="card-free pick-step enter">
-              <h1>Pick the two folders</h1>
-              <p className="lede">
-                Only the <strong>Intranet</strong> folder on This PC will be
-                updated. The <strong>Internet</strong> / brought-over copy stays
-                read-only.
-              </p>
-              <div className="folder-grid">
-                <div className="folder-pane write">
-                  <p className="eyebrow">Intranet · This PC · will change</p>
-                  <p className="folder-path">{thisPc || "No folder selected"}</p>
-                  <button
-                    type="button"
-                    className="btn primary"
-                    onClick={() => pickFolder("this")}
-                  >
-                    Choose Intranet folder
-                  </button>
-                </div>
-                <div className="folder-pane read">
-                  <p className="eyebrow">Internet · brought over · read only</p>
-                  <p className="folder-path">
-                    {broughtOver || "No folder selected"}
-                  </p>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => pickFolder("brought")}
-                  >
-                    Choose Internet folder
-                  </button>
-                </div>
-              </div>
-              {pickError && <p className="error-line">{pickError}</p>}
-              <div className="actions">
-                <button
-                  type="button"
-                  className="btn primary large"
-                  disabled={!thisPc || !broughtOver}
-                  onClick={beginScan}
-                >
-                  Scan differences
-                </button>
-              </div>
-            </section>
+            <PickStep
+              thisPc={thisPc}
+              broughtOver={broughtOver}
+              pickError={pickError}
+              recoveryNote={recoveryNote}
+              onPick={pickFolder}
+              onScan={beginScan}
+            />
           )}
 
           {step === "scan" && (
-            <section className="card-free scan-step enter">
-              <h1>Scanning</h1>
-              <p className="lede">
-                {progress?.message ?? "Starting…"} Both trees are hashed in
-                parallel — you can cancel anytime.
-              </p>
-              <div className="scan-meter" aria-live="polite">
-                <div className="scan-stats">
-                  <div>
-                    <span className="stat-num">
-                      {progress?.filesSeen ?? 0}
-                    </span>
-                    <span className="stat-label">files seen</span>
-                  </div>
-                  <div>
-                    <span className="stat-num">
-                      {progress?.filesHashed ?? 0}
-                    </span>
-                    <span className="stat-label">hashed</span>
-                  </div>
-                </div>
-                <p className="muted tiny">
-                  Phase: {progress?.phase ?? "starting"}
-                </p>
-                <p className="current-path">
-                  {progress?.currentPath || "Preparing workers…"}
-                </p>
-                <div className="pulse-bar" />
-              </div>
-              {scanError ? (
-                <div className="fallback-panel">
-                  <p>{scanError}</p>
-                  <div className="actions">
-                    <button type="button" className="btn" onClick={reset}>
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      className="btn primary"
-                      onClick={beginScan}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" className="btn ghost" onClick={onCancelScan}>
-                  Cancel scan
-                </button>
-              )}
-            </section>
+            <ScanStep
+              progress={progress}
+              scanError={scanError}
+              onCancel={onCancelScan}
+              onRetry={beginScan}
+              onBack={reset}
+            />
           )}
 
           {step === "review" && result && (
-            <section className="review-step enter">
-              <div className="review-head">
-                <div>
-                  <h1>Review changes</h1>
-                  <p className="lede summary-line">{summaryLine}</p>
-                  <p className="muted">
-                    Intranet ← Internet · scanned in{" "}
-                    {(result.summary.elapsedMs / 1000).toFixed(1)}s ·{" "}
-                    {result.summary.identical} identical hidden
-                  </p>
-                  {rulesDirty && (
-                    <p className="error-line">
-                      Ignore rules changed — rescan before apply.
-                    </p>
-                  )}
-                </div>
-                <div className="actions">
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => bulkNeedsYou("bringIn")}
-                  >
-                    Bring into Intranet (all conflicts)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => bulkNeedsYou("keep")}
-                  >
-                    Keep Intranet (all conflicts)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn primary large"
-                    disabled={applying || rulesDirty}
-                    onClick={openConfirm}
-                  >
-                    {applying ? "Applying…" : "Apply to Intranet"}
-                  </button>
-                </div>
-              </div>
-
-              {result.warnings.length > 0 && (
-                <ul className="warn-list">
-                  {result.warnings.slice(0, 5).map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              )}
-
-              <div className="filter-bar">
-                {(
-                  [
-                    ["needsYou", "Needs you"],
-                    ["bringIn", "Bring into Intranet"],
-                    ["keep", "Keep Intranet"],
-                    ["deletions", `Deletions (${result.summary.deletedBrought})`],
-                    ["other", "Env / secret"],
-                    ["all", "All changes"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={filter === key ? "chip on" : "chip"}
-                    onClick={() => setFilter(key)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <ErrorBoundary fallbackTitle="Review list failed">
-                <ReviewList
-                  rows={rows}
-                  filter={filter}
-                  onDecision={onDecision}
-                  onOpen={setOpenPath}
-                />
-              </ErrorBoundary>
-
-              {applyError && <p className="error-line">{applyError}</p>}
-
-              {openPath && sessionId && (
-                <ErrorBoundary fallbackTitle="Diff viewer failed">
-                  <DiffViewer
-                    sessionId={sessionId}
-                    relPath={openPath}
-                    onClose={() => setOpenPath(null)}
-                  />
-                </ErrorBoundary>
-              )}
-            </section>
+            <ReviewStep
+              result={result}
+              rows={rows}
+              filter={filter}
+              applying={applying}
+              rulesDirty={rulesDirty}
+              applyError={applyError}
+              sessionId={sessionId}
+              openPath={openPath}
+              onFilter={setFilter}
+              onDecision={onDecision}
+              onOpen={setOpenPath}
+              onBulkNeedsYou={bulkNeedsYou}
+              onApply={openConfirm}
+            />
           )}
 
           {step === "result" && applyReport && (
-            <section className="card-free result-step enter">
-              <h1>
-                {applyReport.recovered ? "Recovered / undone" : "Sync applied"}
-              </h1>
-              <p className="lede">
-                {applyReport.message
-                  ? applyReport.message
-                  : `${applyReport.applied} files updated · ${applyReport.skipped} skipped · ${applyReport.failed} failed`}
-              </p>
-              {applyReport.journalId && (
-                <p className="muted">Journal: {applyReport.journalId}</p>
-              )}
-              <p className="muted">
-                Commit and push with your usual Git remote. CodeSetu does not
-                push. Undo restores files and the snapshot baseline.
-              </p>
-              {applyReport.failures.length > 0 && (
-                <div className="fallback-panel compact">
-                  <p>Some files failed — others still applied.</p>
-                  <ul>
-                    {applyReport.failures.slice(0, 8).map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {applyError && <p className="error-line">{applyError}</p>}
-              <div className="actions">
-                <button type="button" className="btn" onClick={runUndo}>
-                  Undo last apply
-                </button>
-                <button type="button" className="btn primary" onClick={reset}>
-                  New sync
-                </button>
-              </div>
-            </section>
+            <ResultStep
+              applyReport={applyReport}
+              applyError={applyError}
+              onUndo={runUndo}
+              onReset={reset}
+            />
           )}
         </ErrorBoundary>
       </main>
 
       {showConfirm && preview && (
-        <div className="modal-backdrop" role="presentation">
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirm-title"
-          >
-            <h2 id="confirm-title">Confirm apply to Intranet</h2>
-            <p>
-              This will write to <strong>This PC (Intranet)</strong> only. The
-              Internet folder is never modified.
-            </p>
-            <ul className="confirm-stats">
-              <li>{preview.creates} new files</li>
-              <li>{preview.overwrites} overwrites</li>
-              <li className={preview.deletes > 0 ? "danger-text" : ""}>
-                {preview.deletes} local deletions
-              </li>
-              <li>{preview.moves} moves</li>
-              <li>{preview.skips} skipped</li>
-            </ul>
-            {preview.deletes > 0 && (
-              <p className="error-line">
-                Deletions remove files from Intranet. This is never labeled
-                “Bring into Intranet.”
-              </p>
-            )}
-            {applyError && <p className="error-line">{applyError}</p>}
-            <div className="actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setShowConfirm(false)}
-                disabled={applying}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                disabled={applying}
-                onClick={() => runApply(true)}
-              >
-                {applying
-                  ? "Applying…"
-                  : preview.destructive
-                    ? "Confirm destructive apply"
-                    : "Apply"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ApplyConfirmModal
+          preview={preview}
+          applying={applying}
+          applyError={applyError}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => runApply(true)}
+        />
       )}
     </div>
   );

@@ -8,8 +8,8 @@ import {
   setIgnoreCategoryEnabled,
   setIgnorePatternEnabled,
   updateIgnorePattern,
-} from "./api";
-import type { IgnoreRulesView } from "./types";
+} from "../../shared/api";
+import type { IgnoreRulesView } from "../../shared/types";
 
 type Props = {
   projectPath?: string;
