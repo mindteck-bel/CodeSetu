@@ -4,7 +4,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
 
-/// Copy `src` → temp beside `dest`, fsync, then replace `dest` (Windows-safe).
+/// Copy `src` → temp beside `dest`, fsync via a **write** handle, then replace
+/// `dest` (Windows-safe `MoveFileExW`).
 pub fn replace_file(src: &Path, dest: &Path) -> Result<(), String> {
     if !src.exists() {
         return Err(format!("source missing: {}", src.display()));
@@ -15,13 +16,36 @@ pub fn replace_file(src: &Path, dest: &Path) -> Result<(), String> {
     let tmp = temp_beside(dest);
     // Ensure no stale temp from a prior crash.
     let _ = remove_file_resilient(&tmp);
-    fs::copy(src, &tmp).map_err(|e| format!("temp copy failed: {e}"))?;
-    fsync_path(&tmp)?;
+
+    // Copy + sync on the same write handle so Windows FlushFileBuffers works.
+    // (A read-only reopen + sync_all fails with Access Denied / os error 5.)
+    {
+        let mut inp = File::open(src).map_err(|e| format!("open source: {e}"))?;
+        let mut out = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&tmp)
+            .map_err(|e| format!("create temp: {e}"))?;
+        let mut buf = [0u8; 64 * 1024];
+        loop {
+            let n = inp.read(&mut buf).map_err(|e| e.to_string())?;
+            if n == 0 {
+                break;
+            }
+            out.write_all(&buf[..n]).map_err(|e| e.to_string())?;
+        }
+        out.sync_all()
+            .map_err(|e| format!("fsync temp {}: {e}", tmp.display()))?;
+        drop(out);
+        drop(inp);
+    }
+
     durable_rename(&tmp, dest)?;
     Ok(())
 }
 
-/// Write bytes via temp + fsync + replace.
+/// Write bytes via temp + fsync (writer handle) + replace.
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -31,7 +55,8 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     {
         let mut f = File::create(&tmp).map_err(|e| e.to_string())?;
         f.write_all(bytes).map_err(|e| e.to_string())?;
-        f.sync_all().map_err(|e| e.to_string())?;
+        f.sync_all()
+            .map_err(|e| format!("fsync temp {}: {e}", tmp.display()))?;
         // Explicit close before rename (important on Windows).
         drop(f);
     }
@@ -39,10 +64,17 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// Durably flush file contents. On Windows the handle must be writable —
+/// `File::open` (read-only) + `sync_all` fails with Access Denied.
 pub fn fsync_path(path: &Path) -> Result<(), String> {
     {
-        let f = File::open(path).map_err(|e| e.to_string())?;
-        f.sync_all().map_err(|e| e.to_string())?;
+        let f = fs::OpenOptions::new()
+            .write(true)
+            .read(true)
+            .open(path)
+            .map_err(|e| format!("fsync open {}: {e}", path.display()))?;
+        f.sync_all()
+            .map_err(|e| format!("fsync {}: {e}", path.display()))?;
         drop(f);
     }
     // Best-effort directory fsync on Unix.
@@ -246,6 +278,15 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    fn fsync_path_works_after_write() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("x.txt");
+        fs::write(&p, b"data").unwrap();
+        // Must not Access Denied on Windows (needs write-capable open).
+        fsync_path(&p).unwrap();
+    }
+
+    #[test]
     fn overwrite_existing() {
         let dir = tempdir().unwrap();
         let src = dir.path().join("src.txt");
@@ -278,5 +319,14 @@ mod tests {
         assert_eq!(fs::read_to_string(&p).unwrap(), r#"{"ok":true}"#);
         write_atomic(&p, br#"{"ok":false}"#).unwrap();
         assert_eq!(fs::read_to_string(&p).unwrap(), r#"{"ok":false}"#);
+    }
+
+    #[test]
+    fn remove_file_resilient_deletes() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("gone.txt");
+        fs::write(&p, b"x").unwrap();
+        remove_file_resilient(&p).unwrap();
+        assert!(!p.exists());
     }
 }
