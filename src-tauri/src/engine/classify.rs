@@ -152,17 +152,21 @@ pub fn classify(
                     _ => {}
                 }
 
-                rows.push(row(
+                let mut file_row = row(
                     session_id,
                     &rel,
                     &group,
-                    class,
+                    class.clone(),
                     decision,
                     zone,
                     Some(t),
                     Some(b),
                     None,
-                ));
+                );
+                if matches!(class, ChangeClass::NeedsYou) {
+                    file_row.error = Some(conflict_reason(snap, &t.hash, &b.hash));
+                }
+                rows.push(file_row);
             }
             (None, Some(b)) => {
                 // Move: unique hash on both sides, old path missing on brought.
@@ -322,6 +326,17 @@ fn group_of(rel: &str) -> String {
         .to_string()
 }
 
+fn conflict_reason(snap: Option<&String>, this_hash: &str, brought_hash: &str) -> String {
+    match snap {
+        None => "Both sides differ and there is no prior baseline — choose which version to keep."
+            .into(),
+        Some(s) if s != this_hash && s != brought_hash => {
+            "Both Intranet and Internet changed since the last accepted sync.".into()
+        }
+        Some(_) => "Versions diverge from the last accepted baseline — resolve manually.".into(),
+    }
+}
+
 fn row(
     _session: &str,
     rel: &str,
@@ -477,6 +492,29 @@ mod tests {
             assert!(extras.incomplete_brought);
             assert_eq!(summary.deleted_brought, 0);
             assert!(rows.iter().all(|r| r.class != ChangeClass::DeletedBrought));
+        });
+    }
+
+    #[test]
+    fn ignored_paths_never_become_deletion_candidates() {
+        let dir = tempdir().unwrap();
+        crate::engine::paths::with_test_data_dir(&dir.path().join("data"), || {
+            let mut this_tree = TreeIndex::default();
+            let brought = TreeIndex::default();
+            let e = entry(dir.path(), "node_modules/pkg/index.js", b"dep");
+            let mut snap = Snapshot::default();
+            snap.files
+                .insert("node_modules/pkg/index.js".into(), e.hash.clone());
+            snap.last_brought_file_count = 1;
+            this_tree
+                .files
+                .insert("node_modules/pkg/index.js".into(), e);
+            // Force zone via SyncRules defaults (node_modules ignored).
+            let rules = SyncRules::load(dir.path());
+            assert_eq!(rules.zone("node_modules/pkg/index.js"), PathZone::Ignored);
+            let (rows, summary, _) = classify(&this_tree, &brought, &rules, &snap, "s1");
+            assert_eq!(summary.deleted_brought, 0);
+            assert!(rows.is_empty());
         });
     }
 

@@ -87,6 +87,9 @@ pub struct ScanSummary {
     pub moved: u64,
     pub errors: u64,
     pub elapsed_ms: u64,
+    /// True when no prior baseline exists for this folder pair.
+    #[serde(default)]
+    pub first_sync: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

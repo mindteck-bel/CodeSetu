@@ -223,4 +223,35 @@ mod tests {
             assert!(!idx.files.keys().any(|k| k.contains("node_modules")));
         });
     }
+
+    #[test]
+    fn does_not_follow_symlinks() {
+        let dir = tempdir().unwrap();
+        crate::engine::paths::with_test_data_dir(&dir.path().join("data"), || {
+            let root = dir.path().join("proj");
+            let outside = dir.path().join("outside");
+            fs::create_dir_all(root.join("src")).unwrap();
+            fs::create_dir_all(&outside).unwrap();
+            fs::write(root.join("src/ok.txt"), b"inside").unwrap();
+            fs::write(outside.join("secret.txt"), b"outside").unwrap();
+            #[cfg(unix)]
+            {
+                std::os::unix::fs::symlink(&outside, root.join("link-out")).unwrap();
+            }
+            #[cfg(windows)]
+            {
+                // Junction/symlink may require privileges; skip soft-fail if creation fails.
+                let _ = std::os::windows::fs::symlink_dir(&outside, root.join("link-out"));
+            }
+            let rules = SyncRules::load(&root);
+            let progress = ScanProgress::new(Arc::new(AtomicBool::new(false)));
+            let idx = scan_tree(&root, &rules, &progress);
+            assert!(idx.files.contains_key("src/ok.txt"));
+            assert!(
+                !idx.files.keys().any(|k| k.contains("secret.txt")),
+                "symlink targets must not be scanned: {:?}",
+                idx.files.keys().collect::<Vec<_>>()
+            );
+        });
+    }
 }

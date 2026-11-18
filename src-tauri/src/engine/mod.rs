@@ -1,6 +1,19 @@
+//! CodeSetu sync engine — pure-ish filesystem logic behind the Tauri command layer.
+//!
+//! Public surface:
+//! - [`classify`] / [`scan_tree`] — detect changes
+//! - [`apply_plan`] / [`undo_last`] / [`recover_incomplete`] — mutate Intranet safely
+//! - [`SyncRules`] / [`IgnoreRulesView`] — ignore + zone rules (`codesetu.toml` compatible)
+//! - [`load_snapshot`] / [`save_snapshot`] — local baselines
+//! - [`paths`] — path confinement
+//! - [`diag`] — offline diagnostic JSONL
+//! - [`error`] — typed errors (IPC still uses `String`)
+
 pub mod apply;
 pub mod classify;
+pub mod diag;
 pub mod diff;
+pub mod error;
 pub mod fsutil;
 pub mod hash;
 pub mod hash_cache;
@@ -16,6 +29,7 @@ pub use apply::{
 };
 pub use classify::classify;
 pub use diff::file_diff;
+pub use error::{EngineError, EngineResult};
 pub use ignore_config::IgnoreRulesView;
 pub use rules::SyncRules;
 pub use snapshot::{load_snapshot, save_snapshot, Snapshot};
