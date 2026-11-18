@@ -1,0 +1,21 @@
+# Copy this file into a project root as codesetu.toml
+# Shared paths are the default. Only declare environment-specific paths.
+
+ignore = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/target/**",
+  "**/.git/**",
+]
+
+[intranet-only]
+paths = [
+  "deploy/intra/**",
+  "config/intra/**",
+]
+
+[internet-only]
+paths = [
+  "deploy/cloud/**",
+  "config/public/**",
+]
