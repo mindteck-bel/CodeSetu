@@ -36,8 +36,12 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
     <div className="diff-drawer" role="dialog" aria-label="File diff">
       <div className="diff-header">
         <div>
-          <p className="eyebrow">Side by side</p>
+          <p className="eyebrow">Intranet (left) vs Internet (right)</p>
           <h3>{relPath}</h3>
+          <p className="muted tiny">
+            Use “Bring into Intranet” to take the right side, or “Keep Intranet
+            version” to keep the left.
+          </p>
         </div>
         <button type="button" className="btn ghost" onClick={onClose}>
           Close
@@ -59,15 +63,15 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
           {(diff.kind === "binary" || diff.kind === "large") && (
             <div className="fallback-panel compact">
               <p>
-                This file is {diff.kind}. Use Bring in or Keep on the whole
-                file — text hunks are not shown.
+                This file is {diff.kind}. Use Bring into Intranet or Keep
+                Intranet version on the whole file — text hunks are not shown.
               </p>
             </div>
           )}
           {diff.kind === "text" && (
             <div className="diff-grid">
               <div className="diff-col">
-                <div className="diff-col-title">This PC</div>
+                <div className="diff-col-title">Intranet (This PC)</div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "insert" ? null : (
@@ -79,7 +83,7 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
                 </pre>
               </div>
               <div className="diff-col">
-                <div className="diff-col-title">Brought over</div>
+                <div className="diff-col-title">Internet (brought over)</div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "delete" ? null : (

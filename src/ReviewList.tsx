@@ -1,51 +1,71 @@
 import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { ChangeClass, Decision, FileRow } from "./types";
-
-type Filter = "needsYou" | "bringIn" | "keep" | "all" | "other";
+import type { ChangeClass, Decision, FileRow, ReviewFilter } from "./types";
 
 type Props = {
   rows: FileRow[];
-  filter: Filter;
+  filter: ReviewFilter;
   onDecision: (id: string, decision: Decision) => void;
   onOpen: (relPath: string) => void;
 };
 
 const LABELS: Record<ChangeClass, string> = {
   identical: "Same",
-  bringIn: "Bring in",
-  keep: "Keep",
-  needsYou: "Needs you",
-  addedBrought: "New",
-  deletedBrought: "Deleted over there",
+  bringIn: "Bring into Intranet",
+  keep: "Keep Intranet",
+  needsYou: "Resolve conflict",
+  addedBrought: "New on Internet",
+  deletedBrought: "Deleted on Internet",
   moved: "Moved",
   intranetOnly: "Intranet only",
   internetOnly: "Internet only",
   parkedSecret: "Secret / env",
 };
 
+function primaryActionLabel(row: FileRow): string {
+  if (row.class === "deletedBrought") return "Delete locally";
+  if (row.class === "needsYou") return "Bring into Intranet";
+  return "Bring into Intranet";
+}
+
+function keepActionLabel(row: FileRow): string {
+  if (row.class === "deletedBrought") return "Keep Intranet version";
+  return "Keep Intranet version";
+}
+
+export function decisionLabelsForTest(row: FileRow) {
+  return {
+    primary: primaryActionLabel(row),
+    keep: keepActionLabel(row),
+    skip: "Skip",
+  };
+}
+
+export function filterRows(rows: FileRow[], filter: ReviewFilter): FileRow[] {
+  return rows.filter((r) => {
+    switch (filter) {
+      case "needsYou":
+        return r.class === "needsYou";
+      case "bringIn":
+        return r.class === "bringIn" || r.class === "moved";
+      case "keep":
+        return r.class === "keep";
+      case "deletions":
+        return r.class === "deletedBrought";
+      case "other":
+        return (
+          r.class === "intranetOnly" ||
+          r.class === "internetOnly" ||
+          r.class === "parkedSecret"
+        );
+      default:
+        return r.class !== "identical";
+    }
+  });
+}
+
 export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
-  const filtered = useMemo(() => {
-    return rows.filter((r) => {
-      switch (filter) {
-        case "needsYou":
-          return r.class === "needsYou";
-        case "bringIn":
-          return r.class === "bringIn" || r.class === "moved";
-        case "keep":
-          return r.class === "keep";
-        case "other":
-          return (
-            r.class === "intranetOnly" ||
-            r.class === "internetOnly" ||
-            r.class === "parkedSecret" ||
-            r.class === "deletedBrought"
-          );
-        default:
-          return r.class !== "identical";
-      }
-    });
-  }, [rows, filter]);
+  const filtered = useMemo(() => filterRows(rows, filter), [rows, filter]);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
@@ -75,10 +95,11 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
       >
         {virtualizer.getVirtualItems().map((item) => {
           const row = filtered[item.index];
+          const isDeletion = row.class === "deletedBrought";
           return (
             <div
               key={row.id}
-              className={`review-row class-${row.class}`}
+              className={`review-row class-${row.class}${isDeletion ? " destructive" : ""}`}
               style={{
                 position: "absolute",
                 top: 0,
@@ -102,22 +123,31 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
               <div className="row-actions">
                 <button
                   type="button"
-                  className={row.decision === "bringIn" ? "chip on" : "chip"}
+                  className={
+                    row.decision === "bringIn"
+                      ? `chip on${isDeletion ? " danger" : ""}`
+                      : "chip"
+                  }
                   onClick={() => onDecision(row.id, "bringIn")}
                   disabled={
                     row.class === "intranetOnly" ||
                     row.class === "internetOnly" ||
                     row.class === "parkedSecret"
                   }
+                  title={
+                    isDeletion
+                      ? "Accept the Internet deletion — remove this file from Intranet (This PC)"
+                      : "Copy the Internet version onto Intranet (This PC)"
+                  }
                 >
-                  Bring in
+                  {primaryActionLabel(row)}
                 </button>
                 <button
                   type="button"
                   className={row.decision === "keep" ? "chip on" : "chip"}
                   onClick={() => onDecision(row.id, "keep")}
                 >
-                  Keep
+                  {keepActionLabel(row)}
                 </button>
                 <button
                   type="button"

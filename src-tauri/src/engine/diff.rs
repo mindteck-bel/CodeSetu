@@ -1,4 +1,5 @@
 use crate::engine::hash::{classify_kind, LARGE_TEXT_BYTES};
+use crate::engine::paths::safe_join;
 use crate::engine::types::{DiffHunk, FileDiff, FileKind};
 use similar::{ChangeTag, TextDiff};
 use std::fs;
@@ -7,8 +8,34 @@ use std::path::Path;
 const MAX_DIFF_CHARS: usize = 400_000;
 
 pub fn file_diff(this_pc: &Path, brought_over: &Path, rel: &str) -> FileDiff {
-    let this_path = this_pc.join(rel);
-    let brought_path = brought_over.join(rel);
+    let this_path = match safe_join(this_pc, rel) {
+        Ok(p) => p,
+        Err(e) => {
+            return FileDiff {
+                rel_path: rel.to_string(),
+                kind: FileKind::Binary,
+                this_exists: false,
+                brought_exists: false,
+                hunks: vec![],
+                truncated: false,
+                error: Some(e),
+            };
+        }
+    };
+    let brought_path = match safe_join(brought_over, rel) {
+        Ok(p) => p,
+        Err(e) => {
+            return FileDiff {
+                rel_path: rel.to_string(),
+                kind: FileKind::Binary,
+                this_exists: false,
+                brought_exists: false,
+                hunks: vec![],
+                truncated: false,
+                error: Some(e),
+            };
+        }
+    };
     let this_exists = this_path.exists();
     let brought_exists = brought_path.exists();
 
@@ -17,7 +44,12 @@ pub fn file_diff(this_pc: &Path, brought_over: &Path, rel: &str) -> FileDiff {
         .map(|m| m.len())
         .or_else(|_| brought_path.metadata().map(|m| m.len()))
         .unwrap_or(0);
-    let kind = classify_kind(&this_path.exists().then_some(this_path.as_path()).unwrap_or(&brought_path), size);
+    let kind_path = if this_path.exists() {
+        this_path.as_path()
+    } else {
+        brought_path.as_path()
+    };
+    let kind = classify_kind(kind_path, size);
 
     if matches!(kind, FileKind::Binary | FileKind::Large) || size > LARGE_TEXT_BYTES {
         return FileDiff {
@@ -97,7 +129,11 @@ pub fn file_diff(this_pc: &Path, brought_over: &Path, rel: &str) -> FileDiff {
             } else {
                 String::new()
             },
-            brought_text: if tag != "delete" { value } else { String::new() },
+            brought_text: if tag != "delete" {
+                value
+            } else {
+                String::new()
+            },
         });
         if hunks.len() > 4000 {
             return FileDiff {

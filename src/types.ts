@@ -87,6 +87,56 @@ export interface ApplyReport {
   failed: number;
   failures: string[];
   journalId?: string;
+  creates?: number;
+  overwrites?: number;
+  deletes?: number;
+  recovered?: boolean;
+  message?: string;
 }
 
-export type Step = "pick" | "scan" | "review" | "result";
+export interface ApplyPreview {
+  creates: number;
+  overwrites: number;
+  deletes: number;
+  moves: number;
+  skips: number;
+  destructive: boolean;
+  rowsToApply: number;
+}
+
+export interface IgnorePattern {
+  id: string;
+  pattern: string;
+  category: string;
+  enabled: boolean;
+  builtin: boolean;
+  source: string;
+}
+
+export interface CategoryInfo {
+  id: string;
+  label: string;
+  explanation: string;
+  enabled: boolean;
+  activeCount: number;
+  totalCount: number;
+}
+
+export interface IgnoreRulesView {
+  version: number;
+  patterns: IgnorePattern[];
+  categoryEnabled: Record<string, boolean>;
+  categories: CategoryInfo[];
+  effectivePatterns: string[];
+  projectPath?: string;
+  warnings: string[];
+}
+
+export type Step = "pick" | "scan" | "review" | "result" | "settings";
+export type ReviewFilter =
+  | "needsYou"
+  | "bringIn"
+  | "keep"
+  | "deletions"
+  | "other"
+  | "all";

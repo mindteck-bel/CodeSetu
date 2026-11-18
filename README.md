@@ -1,14 +1,15 @@
 # CodeSetu
 
-Local desktop app that bridges **intranet** and **internet** copies of the same codebase.
+Local desktop app (BSTC / Mindteck) that bridges **Intranet** and **Internet** copies of the same codebase.
 
-You copy one side onto the other PC (USB), pick both folders, review what changed, and apply only the shared changes. CodeSetu never pushes and never needs a server.
+You copy one side onto the other PC (USB), pick both folders, review what changed, and apply only the shared changes onto **This PC (Intranet)**. CodeSetu never pushes and never needs a server or cloud database.
 
 ## Why
 
 Folder diff tools forget your decisions. Sync tools overwrite local work. CodeSetu remembers:
 
 - intranet-only and internet-only paths (`codesetu.toml`)
+- ignore rules (built-in categories + project/user overrides)
 - what you already accepted last time (local snapshot)
 - safe auto-choices, so you only sit with **Needs you**
 
@@ -21,21 +22,36 @@ npm install
 npm run tauri dev
 ```
 
-Build a Windows installer:
+Build a Windows installer (NSIS + MSI):
 
 ```bash
 npm run tauri build
+# artifacts: src-tauri/target/release/bundle/nsis/*.exe
+#            src-tauri/target/release/bundle/msi/*.msi
 ```
 
-GitHub Actions builds the installer on every push to `main` — download the artifact from the workflow run.
+GitHub Actions runs fmt/clippy/tests on Linux + Windows and builds the installer on Windows — download the `codesetu-windows` artifact from the workflow run.
 
-## Project rules
+## Project rules & ignore rules
 
-Copy [`codesetu.example.toml`](codesetu.example.toml) to `codesetu.toml` in the project you sync.
+Copy [`codesetu.example.toml`](codesetu.example.toml) to `codesetu.toml` in the project you sync. Existing `codesetu.toml` is never overwritten by migration.
+
+Use **Settings → Ignore Rules** for categories (VCS, deps, build, IDE, OS, temp, coverage), custom globs, import/export. Changing rules invalidates the current scan — run a fresh compare.
 
 ## Safety
 
-- Only **This PC** is written
-- Atomic file writes + journal + **Undo**
-- `.env` / secrets parked until you explicitly include them
-- One bad file does not abort the whole apply
+- Only **Intranet / This PC** is written
+- Durable per-file replace (Windows-safe) + **journal-first** apply + crash recovery
+- **Undo** restores file bytes **and** the snapshot baseline
+- Incomplete USB/copies never become mass deletions
+- Destructive apply requires confirmation; deletions are labeled **Delete locally**, never “Bring into Intranet”
+- Path traversal rejected on all filesystem ops; hashes revalidated before apply
+- See [`docs/APPLY_TRANSACTION_PROTOCOL.md`](docs/APPLY_TRANSACTION_PROTOCOL.md) (recoverable transaction protocol — not multi-file atomicity)
+
+## Tests
+
+```bash
+cd src-tauri && cargo test --locked
+npm test
+npm run build
+```
