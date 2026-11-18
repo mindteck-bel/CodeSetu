@@ -9,7 +9,7 @@
 //! Individual file replaces use temp+fsync+rename (Windows-safe). The whole batch is
 //! recoverable, not all-or-nothing atomic across files.
 
-use crate::engine::fsutil::{durable_rename, fsync_path, replace_file, write_atomic};
+use crate::engine::fsutil::{fsync_path, remove_file_resilient, replace_file, write_atomic};
 use crate::engine::hash::hash_file;
 use crate::engine::paths::{codesetu_data_dir, normalize_rel_path, safe_join};
 use crate::engine::snapshot::{load_snapshot_from, save_snapshot, save_snapshot_to, Snapshot};
@@ -573,7 +573,7 @@ fn backup_and_remove(dest: &Path, backups: &Path, rel: &str) -> Result<Option<St
     }
     fs::copy(dest, &backup).map_err(|e| e.to_string())?;
     fsync_path(&backup).ok();
-    fs::remove_file(dest).map_err(|e| e.to_string())?;
+    remove_file_resilient(dest)?;
     Ok(Some(backup.display().to_string()))
 }
 
@@ -595,33 +595,23 @@ fn copy_atomic(
         fs::copy(dest, &b).map_err(|e| e.to_string())?;
         fsync_path(&b).ok();
         backup = Some(b.display().to_string());
-        // Remove dest before rename on all platforms so Windows replace works;
-        // backup already durable.
-        fs::remove_file(dest).map_err(|e| format!("cannot clear dest for replace: {e}"))?;
+        // Keep dest in place until replace — Windows MoveFileEx replaces without
+        // a prior delete (delete-first races AV and yields Access Denied).
     }
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    // Write via temp then rename into place.
-    let tmp = dest.with_file_name(format!(
-        "{}.codesetu.tmp",
-        dest.file_name().and_then(|s| s.to_str()).unwrap_or("file")
-    ));
-    fs::copy(src, &tmp).map_err(|e| e.to_string())?;
-    fsync_path(&tmp)?;
-    durable_rename(&tmp, dest).inspect_err(|_e| {
-        let _ = fs::remove_file(&tmp);
+    // Prefer shared helper (temp + fsync + durable replace).
+    replace_file(src, dest).inspect_err(|_e| {
+        // Best-effort temp cleanup if replace_file left one behind.
+        let tmp = dest.with_file_name(format!(
+            "{}.codesetu.tmp",
+            dest.file_name().and_then(|s| s.to_str()).unwrap_or("file")
+        ));
+        let _ = remove_file_resilient(&tmp);
     })?;
-    // Clean any leftover temp
-    let _ = fs::remove_file(&tmp);
     let (hash, _) = hash_file(dest)?;
     Ok((backup, hash))
-}
-
-// Keep replace_file available for callers / tests
-#[allow(dead_code)]
-fn _use_replace(src: &Path, dest: &Path) -> Result<(), String> {
-    replace_file(src, dest)
 }
 
 #[cfg(test)]
