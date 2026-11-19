@@ -32,6 +32,15 @@ describe("ReviewList decision labels", () => {
     );
     expect(labels.primary).toBe("Bring into Intranet");
   });
+
+  it("switches bring/keep labels in flexible mode", () => {
+    const labels = decisionLabelsForTest(
+      row({ id: "3", class: "needsYou", decision: "skip" }),
+      "flexible",
+    );
+    expect(labels.primary).toBe("Bring into destination");
+    expect(labels.keep).toBe("Keep destination version");
+  });
 });
 
 describe("ReviewList filters", () => {

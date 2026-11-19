@@ -12,6 +12,12 @@ import {
   updateDecisions,
   validateFolder,
 } from "./shared/api";
+import {
+  modeCopy,
+  readComparePrefs,
+  writeComparePrefs,
+  type CompareMode,
+} from "./shared/compareMode";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import {
   applyTheme,
@@ -39,8 +45,13 @@ import "./styles/App.css";
 export default function App() {
   const [step, setStep] = useState<Step>("pick");
   const [returnStep, setReturnStep] = useState<Step>("pick");
-  const [thisPc, setThisPc] = useState("");
-  const [broughtOver, setBroughtOver] = useState("");
+  const [compareMode, setCompareMode] = useState<CompareMode>(
+    () => readComparePrefs().mode,
+  );
+  const [thisPc, setThisPc] = useState(() => readComparePrefs().thisPc);
+  const [broughtOver, setBroughtOver] = useState(
+    () => readComparePrefs().broughtOver,
+  );
   const [pickError, setPickError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -59,6 +70,12 @@ export default function App() {
   );
   const [rulesDirty, setRulesDirty] = useState(false);
   const [recoveryNote, setRecoveryNote] = useState<string | null>(null);
+
+  const copy = modeCopy(compareMode);
+
+  useEffect(() => {
+    writeComparePrefs({ mode: compareMode, thisPc, broughtOver });
+  }, [compareMode, thisPc, broughtOver]);
 
   useEffect(() => {
     applyTheme(themePreference);
@@ -108,9 +125,7 @@ export default function App() {
         directory: true,
         multiple: false,
         title:
-          side === "this"
-            ? "Choose Intranet folder on This PC (will be updated)"
-            : "Choose Internet / brought-over folder (read only)",
+          side === "this" ? copy.dialogDestination : copy.dialogSource,
       });
       if (typeof selected === "string") {
         if (side === "this") setThisPc(selected);
@@ -136,6 +151,7 @@ export default function App() {
     }
     setStep("scan");
     try {
+      // Engine always treats first path as writable destination (This PC).
       const scan = await startScan(thisPc, broughtOver);
       setResult(scan);
       setRows(scan.rows);
@@ -254,7 +270,7 @@ export default function App() {
           <img src="/codesetu.svg" alt="" width={32} height={32} />
           <div>
             <p className="brand">CodeSetu</p>
-            <p className="tagline">Bridge Intranet ↔ Internet code</p>
+            <p className="tagline">{copy.tagline}</p>
           </div>
         </div>
         <ol className="steps" aria-label="Progress">
@@ -306,10 +322,12 @@ export default function App() {
 
           {step === "pick" && (
             <PickStep
+              mode={compareMode}
               thisPc={thisPc}
               broughtOver={broughtOver}
               pickError={pickError}
               recoveryNote={recoveryNote}
+              onModeChange={setCompareMode}
               onPick={pickFolder}
               onScan={beginScan}
             />
@@ -327,6 +345,7 @@ export default function App() {
 
           {step === "review" && result && (
             <ReviewStep
+              mode={compareMode}
               result={result}
               rows={rows}
               filter={filter}
@@ -345,6 +364,7 @@ export default function App() {
 
           {step === "result" && applyReport && (
             <ResultStep
+              mode={compareMode}
               applyReport={applyReport}
               applyError={applyError}
               onUndo={runUndo}
@@ -356,6 +376,7 @@ export default function App() {
 
       {showConfirm && preview && (
         <ApplyConfirmModal
+          mode={compareMode}
           preview={preview}
           applying={applying}
           applyError={applyError}

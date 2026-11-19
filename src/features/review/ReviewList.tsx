@@ -1,47 +1,29 @@
 import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type {
-  ChangeClass,
-  Decision,
-  FileRow,
-  ReviewFilter,
-} from "../../shared/types";
+import {
+  changeClassLabel,
+  keepActionLabel,
+  modeCopy,
+  primaryActionLabel,
+  type CompareMode,
+} from "../../shared/compareMode";
+import type { Decision, FileRow, ReviewFilter } from "../../shared/types";
 
 type Props = {
+  mode: CompareMode;
   rows: FileRow[];
   filter: ReviewFilter;
   onDecision: (id: string, decision: Decision) => void;
   onOpen: (relPath: string) => void;
 };
 
-const LABELS: Record<ChangeClass, string> = {
-  identical: "Same",
-  bringIn: "Bring into Intranet",
-  keep: "Keep Intranet",
-  needsYou: "Resolve conflict",
-  addedBrought: "New on Internet",
-  deletedBrought: "Deleted on Internet",
-  moved: "Moved",
-  intranetOnly: "Intranet only",
-  internetOnly: "Internet only",
-  parkedSecret: "Secret / env",
-};
-
-function primaryActionLabel(row: FileRow): string {
-  if (row.class === "deletedBrought") return "Delete locally";
-  if (row.class === "needsYou") return "Bring into Intranet";
-  return "Bring into Intranet";
-}
-
-function keepActionLabel(row: FileRow): string {
-  if (row.class === "deletedBrought") return "Keep Intranet version";
-  return "Keep Intranet version";
-}
-
-export function decisionLabelsForTest(row: FileRow) {
+export function decisionLabelsForTest(
+  row: FileRow,
+  mode: CompareMode = "airgap",
+) {
   return {
-    primary: primaryActionLabel(row),
-    keep: keepActionLabel(row),
+    primary: primaryActionLabel(mode, row),
+    keep: keepActionLabel(mode, row),
     skip: "Skip",
   };
 }
@@ -69,7 +51,8 @@ export function filterRows(rows: FileRow[], filter: ReviewFilter): FileRow[] {
   });
 }
 
-export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
+export function ReviewList({ mode, rows, filter, onDecision, onOpen }: Props) {
+  const copy = modeCopy(mode);
   const filtered = useMemo(() => filterRows(rows, filter), [rows, filter]);
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -119,7 +102,7 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
                 className="row-main"
                 onClick={() => onOpen(row.relPath)}
               >
-                <span className="badge">{LABELS[row.class]}</span>
+                <span className="badge">{changeClassLabel(mode, row.class)}</span>
                 <span className="path">{row.relPath}</span>
                 {row.movedFrom && (
                   <span className="muted tiny">from {row.movedFrom}</span>
@@ -142,20 +125,16 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
                     row.class === "internetOnly" ||
                     row.class === "parkedSecret"
                   }
-                  title={
-                    isDeletion
-                      ? "Accept the Internet deletion — remove this file from Intranet (This PC)"
-                      : "Copy the Internet version onto Intranet (This PC)"
-                  }
+                  title={isDeletion ? copy.deleteTooltip : copy.bringTooltip}
                 >
-                  {primaryActionLabel(row)}
+                  {primaryActionLabel(mode, row)}
                 </button>
                 <button
                   type="button"
                   className={row.decision === "keep" ? "chip on" : "chip"}
                   onClick={() => onDecision(row.id, "keep")}
                 >
-                  {keepActionLabel(row)}
+                  {keepActionLabel(mode, row)}
                 </button>
                 <button
                   type="button"

@@ -1,45 +1,81 @@
+import {
+  MODE_OPTIONS,
+  modeCopy,
+  type CompareMode,
+} from "../../shared/compareMode";
+
 type Props = {
+  mode: CompareMode;
   thisPc: string;
   broughtOver: string;
   pickError: string | null;
   recoveryNote: string | null;
+  onModeChange: (mode: CompareMode) => void;
   onPick: (side: "this" | "brought") => void;
   onScan: () => void;
 };
 
 export function PickStep({
+  mode,
   thisPc,
   broughtOver,
   pickError,
   recoveryNote,
+  onModeChange,
   onPick,
   onScan,
 }: Props) {
+  const copy = modeCopy(mode);
+
   return (
     <section className="card-free pick-step enter">
       {recoveryNote && <p className="warn-line">{recoveryNote}</p>}
-      <h1>Pick the two folders</h1>
-      <p className="lede">
-        Only the <strong>Intranet</strong> folder on This PC will be updated.
-        The <strong>Internet</strong> / brought-over copy stays read-only.
-      </p>
+      <h1>{copy.pickTitle}</h1>
+      <p className="lede">{copy.pickLede}</p>
+
+      <fieldset className="mode-picker">
+        <legend className="sr-only">Compare mode</legend>
+        <p className="eyebrow">Compare mode</p>
+        <div className="mode-options" role="radiogroup" aria-label="Compare mode">
+          {MODE_OPTIONS.map((option) => {
+            const selected = mode === option.id;
+            return (
+              <label
+                key={option.id}
+                className={`mode-option${selected ? " selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="compare-mode"
+                  value={option.id}
+                  checked={selected}
+                  onChange={() => onModeChange(option.id)}
+                />
+                <span className="mode-option-title">{option.title}</span>
+                <span className="mode-option-desc">{option.description}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <div className="folder-grid">
         <div className="folder-pane write">
-          <p className="eyebrow">Intranet · This PC · will change</p>
+          <p className="eyebrow">{copy.destinationEyebrow}</p>
           <p className="folder-path">{thisPc || "No folder selected"}</p>
           <button
             type="button"
             className="btn primary"
             onClick={() => onPick("this")}
           >
-            Choose Intranet folder
+            {copy.chooseDestination}
           </button>
         </div>
         <div className="folder-pane read">
-          <p className="eyebrow">Internet · brought over · read only</p>
+          <p className="eyebrow">{copy.sourceEyebrow}</p>
           <p className="folder-path">{broughtOver || "No folder selected"}</p>
           <button type="button" className="btn" onClick={() => onPick("brought")}>
-            Choose Internet folder
+            {copy.chooseSource}
           </button>
         </div>
       </div>

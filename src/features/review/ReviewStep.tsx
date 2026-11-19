@@ -1,3 +1,4 @@
+import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import { ErrorBoundary } from "../../shared/ErrorBoundary";
 import type {
   Decision,
@@ -9,6 +10,7 @@ import { DiffViewer } from "./DiffViewer";
 import { ReviewList } from "./ReviewList";
 
 type Props = {
+  mode: CompareMode;
   result: ScanResult;
   rows: FileRow[];
   filter: ReviewFilter;
@@ -25,6 +27,7 @@ type Props = {
 };
 
 export function ReviewStep({
+  mode,
   result,
   rows,
   filter,
@@ -39,8 +42,9 @@ export function ReviewStep({
   onBulkNeedsYou,
   onApply,
 }: Props) {
+  const copy = modeCopy(mode);
   const s = result.summary;
-  const summaryLine = `${s.bringIn} bring into Intranet · ${s.keep} keep Intranet · ${s.needsYou} need you · ${s.deletedBrought} deletions · ${s.intranetOnly} intranet-only · ${s.internetOnly} internet-only`;
+  const summaryLine = `${s.bringIn} ${copy.summaryBringIn} · ${s.keep} ${copy.summaryKeep} · ${s.needsYou} need you · ${s.deletedBrought} deletions · ${s.intranetOnly} ${copy.summaryDestOnly} · ${s.internetOnly} ${copy.summarySourceOnly}`;
   const firstSync = Boolean(s.firstSync);
 
   return (
@@ -50,15 +54,11 @@ export function ReviewStep({
           <h1>Review changes</h1>
           <p className="lede summary-line">{summaryLine}</p>
           <p className="muted">
-            Intranet ← Internet · scanned in{" "}
+            {copy.reviewArrow} · scanned in{" "}
             {(result.summary.elapsedMs / 1000).toFixed(1)}s ·{" "}
             {result.summary.identical} identical hidden
           </p>
-          <p className="muted tiny side-legend">
-            Left = Intranet (This PC, writable) · Right = Internet (read-only).
-            Conflicts need an explicit choice — neither side is taken
-            automatically.
-          </p>
+          <p className="muted tiny side-legend">{copy.sideLegend}</p>
           {firstSync && (
             <p className="warn-line">
               First sync — new files are pre-selected; confirm carefully before
@@ -83,14 +83,14 @@ export function ReviewStep({
             }
             onClick={() => onBulkNeedsYou("bringIn")}
           >
-            Bring into Intranet (all conflicts)
+            {copy.bringIntoAll}
           </button>
           <button
             type="button"
             className="btn"
             onClick={() => onBulkNeedsYou("keep")}
           >
-            Keep Intranet (all conflicts)
+            {copy.keepAll}
           </button>
           <button
             type="button"
@@ -98,7 +98,7 @@ export function ReviewStep({
             disabled={applying || rulesDirty}
             onClick={onApply}
           >
-            {applying ? "Applying…" : "Apply to Intranet"}
+            {applying ? "Applying…" : copy.applyButton}
           </button>
         </div>
       </div>
@@ -115,8 +115,8 @@ export function ReviewStep({
         {(
           [
             ["needsYou", "Needs you"],
-            ["bringIn", "Bring into Intranet"],
-            ["keep", "Keep Intranet"],
+            ["bringIn", copy.filterBringIn],
+            ["keep", copy.filterKeep],
             ["deletions", `Deletions (${result.summary.deletedBrought})`],
             ["other", "Env / secret"],
             ["all", "All changes"],
@@ -135,6 +135,7 @@ export function ReviewStep({
 
       <ErrorBoundary fallbackTitle="Review list failed">
         <ReviewList
+          mode={mode}
           rows={rows}
           filter={filter}
           onDecision={onDecision}
@@ -147,6 +148,7 @@ export function ReviewStep({
       {openPath && sessionId && (
         <ErrorBoundary fallbackTitle="Diff viewer failed">
           <DiffViewer
+            mode={mode}
             sessionId={sessionId}
             relPath={openPath}
             onClose={() => onOpen(null)}

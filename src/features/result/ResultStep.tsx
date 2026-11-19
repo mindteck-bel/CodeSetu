@@ -1,6 +1,8 @@
+import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import type { ApplyReport } from "../../shared/types";
 
 type Props = {
+  mode: CompareMode;
   applyReport: ApplyReport;
   applyError: string | null;
   onUndo: () => void;
@@ -8,14 +10,16 @@ type Props = {
 };
 
 export function ResultStep({
+  mode,
   applyReport,
   applyError,
   onUndo,
   onReset,
 }: Props) {
+  const copy = modeCopy(mode);
   return (
     <section className="card-free result-step enter">
-      <h1>{applyReport.recovered ? "Recovered / undone" : "Sync applied"}</h1>
+      <h1>{applyReport.recovered ? "Recovered / undone" : copy.resultTitle}</h1>
       <p className="lede">
         {applyReport.message
           ? applyReport.message

@@ -167,9 +167,9 @@ export function IgnoreRulesSettings({
         <div>
           <h1>Ignore Rules</h1>
           <p className="lede">
-            Offline patterns excluded from both Intranet and Internet scans.
-            Ignored paths never appear as deletions, conflicts, or bulk actions.
-            Changing rules invalidates the current scan — run a fresh compare.
+            Offline patterns excluded from both folder scans. Ignored paths
+            never appear as deletions, conflicts, or bulk actions. Changing
+            rules invalidates the current scan — run a fresh compare.
           </p>
         </div>
         <button type="button" className="btn" onClick={onClose}>
@@ -187,7 +187,10 @@ export function IgnoreRulesSettings({
           />
           Save as project override
           {!projectPath && (
-            <span className="muted tiny"> (select Intranet folder first)</span>
+            <span className="muted tiny">
+              {" "}
+              (select destination folder first)
+            </span>
           )}
         </label>
         <input

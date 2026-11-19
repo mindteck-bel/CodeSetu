@@ -76,7 +76,7 @@ pub async fn start_scan(
                     files_seen: progress_ui.files_seen.load(Ordering::Relaxed),
                     files_hashed: progress_ui.files_hashed.load(Ordering::Relaxed),
                     current_path: current,
-                    message: "Scanning Intranet and Internet folders…".into(),
+                    message: "Scanning both folders…".into(),
                 },
             );
         }
@@ -139,7 +139,7 @@ pub async fn start_scan(
                 files_seen: progress.files_seen.load(Ordering::Relaxed),
                 files_hashed: progress.files_hashed.load(Ordering::Relaxed),
                 current_path: String::new(),
-                message: "Comparing Intranet vs Internet…".into(),
+                message: "Comparing folders…".into(),
             },
         );
 

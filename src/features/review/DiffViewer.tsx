@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { getFileDiff } from "../../shared/api";
+import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import type { FileDiff } from "../../shared/types";
 
 type Props = {
+  mode: CompareMode;
   sessionId: string;
   relPath: string;
   onClose: () => void;
 };
 
-export function DiffViewer({ sessionId, relPath, onClose }: Props) {
+export function DiffViewer({ mode, sessionId, relPath, onClose }: Props) {
+  const copy = modeCopy(mode);
   const [diff, setDiff] = useState<FileDiff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,12 +39,9 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
     <div className="diff-drawer" role="dialog" aria-label="File diff">
       <div className="diff-header">
         <div>
-          <p className="eyebrow">Intranet (left) vs Internet (right)</p>
+          <p className="eyebrow">{copy.diffEyebrow}</p>
           <h3>{relPath}</h3>
-          <p className="muted tiny">
-            Use “Bring into Intranet” to take the right side, or “Keep Intranet
-            version” to keep the left.
-          </p>
+          <p className="muted tiny">{copy.diffHint}</p>
         </div>
         <button type="button" className="btn ghost" onClick={onClose}>
           Close
@@ -57,21 +57,18 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
       )}
       {diff && !loading && (
         <>
-          {diff.error && (
-            <p className="warn-line">{diff.error}</p>
-          )}
+          {diff.error && <p className="warn-line">{diff.error}</p>}
           {(diff.kind === "binary" || diff.kind === "large") && (
             <div className="fallback-panel compact">
               <p>
-                This file is {diff.kind}. Use Bring into Intranet or Keep
-                Intranet version on the whole file — text hunks are not shown.
+                This file is {diff.kind}. {copy.binaryHint}
               </p>
             </div>
           )}
           {diff.kind === "text" && (
             <div className="diff-grid">
               <div className="diff-col">
-                <div className="diff-col-title">Intranet (This PC)</div>
+                <div className="diff-col-title">{copy.diffLeftTitle}</div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "insert" ? null : (
@@ -83,7 +80,7 @@ export function DiffViewer({ sessionId, relPath, onClose }: Props) {
                 </pre>
               </div>
               <div className="diff-col">
-                <div className="diff-col-title">Internet (brought over)</div>
+                <div className="diff-col-title">{copy.diffRightTitle}</div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "delete" ? null : (

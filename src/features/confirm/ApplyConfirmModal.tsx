@@ -1,6 +1,8 @@
+import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import type { ApplyPreview } from "../../shared/types";
 
 type Props = {
+  mode: CompareMode;
   preview: ApplyPreview;
   applying: boolean;
   applyError: string | null;
@@ -9,12 +11,14 @@ type Props = {
 };
 
 export function ApplyConfirmModal({
+  mode,
   preview,
   applying,
   applyError,
   onCancel,
   onConfirm,
 }: Props) {
+  const copy = modeCopy(mode);
   const needsGate = preview.destructive || Boolean(preview.firstSync);
   return (
     <div className="modal-backdrop" role="presentation">
@@ -24,11 +28,8 @@ export function ApplyConfirmModal({
         aria-modal="true"
         aria-labelledby="confirm-title"
       >
-        <h2 id="confirm-title">Confirm apply to Intranet</h2>
-        <p>
-          This will write to <strong>This PC (Intranet)</strong> only. The
-          Internet folder is never modified.
-        </p>
+        <h2 id="confirm-title">{copy.confirmTitle}</h2>
+        <p>{copy.confirmBody}</p>
         {preview.firstSync && (
           <p className="warn-line">
             First sync for this folder pair — there is no prior baseline. Review
@@ -45,10 +46,7 @@ export function ApplyConfirmModal({
           <li>{preview.skips} skipped</li>
         </ul>
         {preview.deletes > 0 && (
-          <p className="error-line">
-            Deletions remove files from Intranet. This is never labeled “Bring
-            into Intranet.”
-          </p>
+          <p className="error-line">{copy.deleteWarning}</p>
         )}
         {applyError && <p className="error-line">{applyError}</p>}
         <div className="actions">
