@@ -76,7 +76,7 @@ export function ReviewList({ rows, filter, onDecision, onOpen }: Props) {
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 64,
+    estimateSize: () => 44,
     overscan: 12,
   });
 

@@ -5,10 +5,35 @@
     <link rel="icon" type="image/svg+xml" href="/codesetu.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeSetu</title>
+    <script>
+      (function () {
+        try {
+          var key = "codesetu-theme";
+          var pref = localStorage.getItem(key) || "system";
+          if (pref !== "dark" && pref !== "light" && pref !== "system") {
+            pref = "system";
+          }
+          var resolved = pref;
+          if (pref === "system") {
+            resolved =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          }
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.dataset.themePreference = pref;
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.style.colorScheme = "dark";
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
   </head>

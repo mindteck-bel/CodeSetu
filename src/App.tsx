@@ -13,6 +13,11 @@ import {
   validateFolder,
 } from "./shared/api";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
+import {
+  applyTheme,
+  readThemePreference,
+  type ThemePreference,
+} from "./shared/theme";
 import type {
   ApplyPreview,
   ApplyReport,
@@ -49,17 +54,23 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [preview, setPreview] = useState<ApplyPreview | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("codesetu-theme");
-    return saved === "light" ? "light" : "dark";
-  });
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
+    readThemePreference(),
+  );
   const [rulesDirty, setRulesDirty] = useState(false);
   const [recoveryNote, setRecoveryNote] = useState<string | null>(null);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("codesetu-theme", theme);
-  }, [theme]);
+    applyTheme(themePreference);
+  }, [themePreference]);
+
+  useEffect(() => {
+    if (themePreference !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => applyTheme("system");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [themePreference]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -238,10 +249,9 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="atmosphere" aria-hidden />
       <header className="topbar">
         <div className="brand-block">
-          <img src="/codesetu.svg" alt="" width={36} height={36} />
+          <img src="/codesetu.svg" alt="" width={32} height={32} />
           <div>
             <p className="brand">CodeSetu</p>
             <p className="tagline">Bridge Intranet ↔ Internet code</p>
@@ -262,13 +272,22 @@ export default function App() {
           ))}
         </ol>
         <div className="top-actions">
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          <label className="sr-only" htmlFor="theme-select">
+            Theme
+          </label>
+          <select
+            id="theme-select"
+            className="theme-select"
+            value={themePreference}
+            onChange={(e) =>
+              setThemePreference(e.target.value as ThemePreference)
+            }
+            aria-label="Theme"
           >
-            {theme === "dark" ? "Light" : "Dark"}
-          </button>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+          </select>
           <button type="button" className="btn" onClick={openSettings}>
             Settings
           </button>

@@ -62,7 +62,9 @@ export function ApplyConfirmModal({
           </button>
           <button
             type="button"
-            className="btn primary"
+            className={
+              preview.destructive ? "btn destructive" : "btn primary"
+            }
             disabled={applying}
             onClick={onConfirm}
           >
