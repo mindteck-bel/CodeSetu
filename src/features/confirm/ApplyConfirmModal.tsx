@@ -36,6 +36,12 @@ export function ApplyConfirmModal({
             creates carefully before confirming.
           </p>
         )}
+        {preview.selectedCount != null && preview.selectedCount > 0 && (
+          <p className="muted">
+            Applying {preview.selectedCount} selected file(s) only — other
+            decisions stay untouched.
+          </p>
+        )}
         <ul className="confirm-stats">
           <li>{preview.creates} new files</li>
           <li>{preview.overwrites} overwrites</li>

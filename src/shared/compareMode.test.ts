@@ -77,19 +77,24 @@ describe("apply target safety", () => {
 });
 
 describe("label mapping", () => {
-  it("keeps Intranet terminology in airgap mode", () => {
+  it("uses plain Review language in airgap mode", () => {
     const copy = modeCopy("airgap");
-    expect(copy.bringInto).toBe("Bring into Intranet");
-    expect(copy.applyButton).toBe("Apply to Intranet");
+    expect(copy.bringInto).toBe("Use source");
+    expect(copy.keepVersion).toBe("Keep mine");
+    expect(copy.filterConflict).toBe("Conflict");
+    expect(copy.applySelectedButton).toBe("Apply selected");
+    expect(copy.applyButton).toBe("Apply all");
     expect(copy.destinationEyebrow).toContain("Intranet");
     expect(copy.sourceEyebrow).toContain("Internet");
+    expect(changeClassLabel("airgap", "needsYou")).toBe("Conflict");
     expect(changeClassLabel("airgap", "internetOnly")).toBe("Internet only");
   });
 
   it("uses destination/source labels in flexible mode", () => {
     const copy = modeCopy("flexible");
-    expect(copy.bringInto).toBe("Bring into destination");
-    expect(copy.applyButton).toBe("Apply to This PC");
+    expect(copy.bringInto).toBe("Use source");
+    expect(copy.keep).toBe("Keep mine");
+    expect(copy.applyButton).toBe("Apply all");
     expect(copy.destinationEyebrow).toContain("Destination");
     expect(copy.sourceEyebrow).toContain("Source");
     expect(changeClassLabel("flexible", "addedBrought")).toBe("New on source");
@@ -98,7 +103,7 @@ describe("label mapping", () => {
     );
   });
 
-  it("never labels deletions as bring-in in either mode", () => {
+  it("never labels deletions as use-source in either mode", () => {
     for (const mode of ["airgap", "flexible"] as const) {
       const labels = {
         primary: primaryActionLabel(
@@ -109,18 +114,17 @@ describe("label mapping", () => {
       };
       expect(labels.primary).toBe("Delete locally");
       expect(labels.primary.toLowerCase()).not.toContain("bring");
-      expect(labels.keep.toLowerCase()).toContain(
-        mode === "airgap" ? "intranet" : "destination",
-      );
+      expect(labels.primary.toLowerCase()).not.toContain("use source");
+      expect(labels.keep).toBe("Keep mine");
     }
   });
 
-  it("maps bring-in action labels by mode", () => {
+  it("maps bring-in action labels to Use source", () => {
     expect(
       primaryActionLabel("airgap", row({ id: "2", class: "bringIn" })),
-    ).toBe("Bring into Intranet");
+    ).toBe("Use source");
     expect(
       primaryActionLabel("flexible", row({ id: "2", class: "bringIn" })),
-    ).toBe("Bring into destination");
+    ).toBe("Use source");
   });
 });

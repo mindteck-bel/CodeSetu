@@ -2,6 +2,7 @@
 
 use crate::engine::types::{ChangeClass, Decision, FileRow};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -16,14 +17,30 @@ pub struct ApplyPreview {
     /// True when there is no prior baseline for this folder pair.
     #[serde(default)]
     pub first_sync: bool,
+    /// When set, preview/apply is limited to this many selected row ids.
+    #[serde(default)]
+    pub selected_count: u64,
 }
 
-pub fn preview_apply(rows: &[FileRow], first_sync: bool) -> ApplyPreview {
+/// When `only_ids` is `Some`, only those row ids are counted; others are out of scope.
+pub fn preview_apply(
+    rows: &[FileRow],
+    first_sync: bool,
+    only_ids: Option<&[String]>,
+) -> ApplyPreview {
+    let filter: Option<HashSet<&str>> =
+        only_ids.map(|ids| ids.iter().map(|s| s.as_str()).collect());
     let mut preview = ApplyPreview {
         first_sync,
+        selected_count: filter.as_ref().map(|f| f.len() as u64).unwrap_or(0),
         ..Default::default()
     };
     for row in rows {
+        if let Some(ref allowed) = filter {
+            if !allowed.contains(row.id.as_str()) {
+                continue;
+            }
+        }
         if matches!(
             row.class,
             ChangeClass::IntranetOnly | ChangeClass::InternetOnly | ChangeClass::ParkedSecret

@@ -74,7 +74,10 @@ export type ModeCopy = {
   keepVersion: string;
   bringIntoAll: string;
   keepAll: string;
+  bringIntoSelected: string;
+  keepSelected: string;
   applyButton: string;
+  applySelectedButton: string;
   confirmTitle: string;
   confirmBody: string;
   deleteWarning: string;
@@ -85,19 +88,24 @@ export type ModeCopy = {
   binaryHint: string;
   filterBringIn: string;
   filterKeep: string;
+  filterConflict: string;
   summaryBringIn: string;
   summaryKeep: string;
+  summaryConflict: string;
   summaryDestOnly: string;
   summarySourceOnly: string;
   resultTitle: string;
   bringTitle: string;
   keepTitle: string;
+  conflictTitle: string;
   addedSource: string;
   deletedSource: string;
   destOnly: string;
   sourceOnly: string;
   bringTooltip: string;
   deleteTooltip: string;
+  keepTooltip: string;
+  emptySelectionHint: string;
 };
 
 const AIRGAP: ModeCopy = {
@@ -111,43 +119,51 @@ const AIRGAP: ModeCopy = {
   chooseSource: "Choose Internet folder",
   dialogDestination: "Choose Intranet folder on This PC (will be updated)",
   dialogSource: "Choose Internet / brought-over folder (read only)",
-  reviewArrow: "Intranet ← Internet",
+  reviewArrow: "Mine (Intranet) ← Source (Internet)",
   sideLegend:
-    "Left = Intranet (This PC, writable) · Right = Internet (read-only). Conflicts need an explicit choice — neither side is taken automatically.",
-  bringInto: "Bring into Intranet",
-  keep: "Keep Intranet",
-  keepVersion: "Keep Intranet version",
-  bringIntoAll: "Bring into Intranet (all conflicts)",
-  keepAll: "Keep Intranet (all conflicts)",
-  applyButton: "Apply to Intranet",
+    "Left = mine (Intranet on This PC) · Right = source (Internet, read-only). Conflicts need an explicit choice.",
+  bringInto: "Use source",
+  keep: "Keep mine",
+  keepVersion: "Keep mine",
+  bringIntoAll: "Use source (all conflicts)",
+  keepAll: "Keep mine (all conflicts)",
+  bringIntoSelected: "Use source (selected)",
+  keepSelected: "Keep mine (selected)",
+  applyButton: "Apply all",
+  applySelectedButton: "Apply selected",
   confirmTitle: "Confirm apply to Intranet",
   confirmBody:
     "This will write to This PC (Intranet) only. The Internet folder is never modified.",
   deleteWarning:
-    "Deletions remove files from Intranet. This is never labeled “Bring into Intranet.”",
-  diffEyebrow: "Intranet (left) vs Internet (right)",
-  diffHint:
-    "Use “Bring into Intranet” to take the right side, or “Keep Intranet version” to keep the left.",
-  diffLeftTitle: "Intranet (This PC)",
-  diffRightTitle: "Internet (brought over)",
+    "Deletions remove files from Intranet (mine). This is never labeled “Use source.”",
+  diffEyebrow: "Mine (left) vs source (right)",
+  diffHint: "Use source takes the right side. Keep mine keeps the left.",
+  diffLeftTitle: "Mine (Intranet)",
+  diffRightTitle: "Source (Internet)",
   binaryHint:
-    "Use Bring into Intranet or Keep Intranet version on the whole file — text hunks are not shown.",
-  filterBringIn: "Bring into Intranet",
-  filterKeep: "Keep Intranet",
-  summaryBringIn: "bring into Intranet",
-  summaryKeep: "keep Intranet",
+    "Use source or Keep mine on the whole file — text hunks are not shown.",
+  filterBringIn: "Use source",
+  filterKeep: "Keep mine",
+  filterConflict: "Conflict",
+  summaryBringIn: "use source",
+  summaryKeep: "keep mine",
+  summaryConflict: "conflicts",
   summaryDestOnly: "intranet-only",
   summarySourceOnly: "internet-only",
   resultTitle: "Sync applied",
-  bringTitle: "Bring into Intranet",
-  keepTitle: "Keep Intranet",
-  addedSource: "New on Internet",
-  deletedSource: "Deleted on Internet",
+  bringTitle: "Use source",
+  keepTitle: "Keep mine",
+  conflictTitle: "Conflict",
+  addedSource: "New on source",
+  deletedSource: "Deleted on source",
   destOnly: "Intranet only",
   sourceOnly: "Internet only",
-  bringTooltip: "Copy the Internet version onto Intranet (This PC)",
+  bringTooltip: "Copy the Internet (source) version onto Intranet (mine)",
   deleteTooltip:
-    "Accept the Internet deletion — remove this file from Intranet (This PC)",
+    "Accept the Internet deletion — remove this file from Intranet (mine)",
+  keepTooltip: "Keep the Intranet (mine) version; ignore the source",
+  emptySelectionHint:
+    "No files selected — Apply all uses every decision. Check files in the tree to apply only those.",
 };
 
 const FLEXIBLE: ModeCopy = {
@@ -161,43 +177,51 @@ const FLEXIBLE: ModeCopy = {
   chooseSource: "Choose source folder",
   dialogDestination: "Choose destination folder on This PC (will be updated)",
   dialogSource: "Choose source folder (read only)",
-  reviewArrow: "Destination ← Source",
+  reviewArrow: "Mine (destination) ← Source",
   sideLegend:
-    "Left = Destination (This PC, writable) · Right = Source (read-only). Conflicts need an explicit choice — neither side is taken automatically.",
-  bringInto: "Bring into destination",
-  keep: "Keep destination",
-  keepVersion: "Keep destination version",
-  bringIntoAll: "Bring into destination (all conflicts)",
-  keepAll: "Keep destination (all conflicts)",
-  applyButton: "Apply to This PC",
+    "Left = mine (destination on This PC) · Right = source (read-only). Conflicts need an explicit choice.",
+  bringInto: "Use source",
+  keep: "Keep mine",
+  keepVersion: "Keep mine",
+  bringIntoAll: "Use source (all conflicts)",
+  keepAll: "Keep mine (all conflicts)",
+  bringIntoSelected: "Use source (selected)",
+  keepSelected: "Keep mine (selected)",
+  applyButton: "Apply all",
+  applySelectedButton: "Apply selected",
   confirmTitle: "Confirm apply to destination",
   confirmBody:
     "This will write to the destination folder on This PC only. The source folder is never modified.",
   deleteWarning:
-    "Deletions remove files from the destination. This is never labeled “Bring into destination.”",
-  diffEyebrow: "Destination (left) vs Source (right)",
-  diffHint:
-    "Use “Bring into destination” to take the right side, or “Keep destination version” to keep the left.",
-  diffLeftTitle: "Destination (This PC)",
-  diffRightTitle: "Source (read only)",
+    "Deletions remove files from the destination (mine). This is never labeled “Use source.”",
+  diffEyebrow: "Mine (left) vs source (right)",
+  diffHint: "Use source takes the right side. Keep mine keeps the left.",
+  diffLeftTitle: "Mine (destination)",
+  diffRightTitle: "Source",
   binaryHint:
-    "Use Bring into destination or Keep destination version on the whole file — text hunks are not shown.",
-  filterBringIn: "Bring into destination",
-  filterKeep: "Keep destination",
-  summaryBringIn: "bring into destination",
-  summaryKeep: "keep destination",
+    "Use source or Keep mine on the whole file — text hunks are not shown.",
+  filterBringIn: "Use source",
+  filterKeep: "Keep mine",
+  filterConflict: "Conflict",
+  summaryBringIn: "use source",
+  summaryKeep: "keep mine",
+  summaryConflict: "conflicts",
   summaryDestOnly: "destination-only",
   summarySourceOnly: "source-only",
   resultTitle: "Changes applied",
-  bringTitle: "Bring into destination",
-  keepTitle: "Keep destination",
+  bringTitle: "Use source",
+  keepTitle: "Keep mine",
+  conflictTitle: "Conflict",
   addedSource: "New on source",
   deletedSource: "Deleted on source",
   destOnly: "Destination only",
   sourceOnly: "Source only",
-  bringTooltip: "Copy the source version onto the destination (This PC)",
+  bringTooltip: "Copy the source version onto the destination (mine)",
   deleteTooltip:
-    "Accept the source deletion — remove this file from the destination (This PC)",
+    "Accept the source deletion — remove this file from the destination (mine)",
+  keepTooltip: "Keep the destination (mine) version; ignore the source",
+  emptySelectionHint:
+    "No files selected — Apply all uses every decision. Check files in the tree to apply only those.",
 };
 
 export function modeCopy(mode: CompareMode): ModeCopy {
@@ -217,7 +241,7 @@ export function changeClassLabel(
     case "keep":
       return c.keepTitle;
     case "needsYou":
-      return "Resolve conflict";
+      return c.conflictTitle;
     case "addedBrought":
       return c.addedSource;
     case "deletedBrought":

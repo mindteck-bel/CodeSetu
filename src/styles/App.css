@@ -8,8 +8,9 @@ html,
 body,
 #root {
   margin: 0;
-  min-height: 100%;
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text-primary);
 }
@@ -31,7 +32,8 @@ select:focus-visible,
 
 .app-shell {
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -102,12 +104,33 @@ select:focus-visible,
   background: var(--accent-subtle);
 }
 
+.step-link {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.step-link:hover {
+  color: var(--accent);
+}
+
 .stage {
   flex: 1;
   padding: var(--space-4) var(--space-5) var(--space-5);
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.stage:has(.review-step) {
+  overflow: hidden;
 }
 
 h1 {
@@ -402,6 +425,8 @@ h2 {
   min-height: 0;
   flex: 1;
   gap: var(--space-3);
+  overflow: hidden;
+  height: 100%;
 }
 
 .review-head {
@@ -409,16 +434,174 @@ h2 {
   justify-content: space-between;
   gap: var(--space-4);
   align-items: flex-start;
+  flex: 0 0 auto;
+}
+
+.review-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.review-title-row h1 {
+  margin: 0;
 }
 
 .summary-line {
   margin-bottom: var(--space-1);
 }
 
+.selection-hint {
+  margin-top: var(--space-2);
+}
+
 .filter-bar {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+/* Fixed-height split: tree + diff scroll inside, page does not grow */
+.review-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 34%) 1fr;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+.file-tree-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.file-tree-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.tree-select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-meta-size);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tiny-btn {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-tiny-size);
+}
+
+.file-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.tree-empty {
+  margin: var(--space-3);
+}
+
+.tree-folder-row,
+.tree-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 34px;
+  border-bottom: var(--border-width) solid transparent;
+}
+
+.tree-file:hover,
+.tree-folder-row:hover {
+  background: var(--surface-hover);
+}
+
+.tree-file.active {
+  background: var(--accent-subtle);
+}
+
+.tree-check {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.tree-folder-toggle,
+.tree-file-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: var(--space-1) var(--space-1) var(--space-1) 0;
+  border-radius: var(--radius-control);
+}
+
+.tree-chevron {
+  width: 1rem;
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+.tree-folder-name {
+  font-weight: 600;
+  font-size: var(--text-meta-size);
+  color: var(--text-secondary);
+}
+
+.tree-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta-size);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-decision {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.review-diff-host {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.diff-placeholder {
+  margin: auto;
+  max-width: 28rem;
+  text-align: center;
+  border: 0;
+  background: transparent;
 }
 
 .chip {
@@ -607,20 +790,13 @@ h2 {
   line-height: var(--lh-meta);
 }
 
-.diff-drawer {
-  position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
-  top: 72px;
-  width: min(720px, calc(100vw - 2rem));
-  background: var(--surface-elevated);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-dialog);
-  box-shadow: var(--shadow-dialog);
-  z-index: 20;
+.diff-pane {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  flex: 1;
   overflow: hidden;
+  background: var(--surface);
 }
 
 .diff-header {
@@ -629,7 +805,28 @@ h2 {
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
   border-bottom: var(--border-width) solid var(--border);
-  background: var(--surface);
+  background: var(--bg-secondary);
+  flex: 0 0 auto;
+}
+
+.diff-header-text {
+  min-width: 0;
+}
+
+.diff-header-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.diff-layout-toggle,
+.diff-file-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .diff-header h3 {
@@ -639,21 +836,35 @@ h2 {
   font-weight: 500;
   line-height: var(--lh-meta);
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 36vw;
 }
 
-.diff-grid {
+.diff-grid,
+.diff-unified {
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 0;
   flex: 1;
+  overflow: hidden;
+}
+
+.diff-unified {
+  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
 }
 
 .diff-col {
   min-width: 0;
+  min-height: 0;
   border-right: var(--border-width) solid var(--border);
   display: flex;
   flex-direction: column;
   background: var(--surface);
+  overflow: hidden;
 }
 
 .diff-col:last-child {
@@ -670,6 +881,7 @@ h2 {
   border-bottom: var(--border-width) solid var(--border);
   background: var(--bg-secondary);
   line-height: var(--lh-meta);
+  flex: 0 0 auto;
 }
 
 .diff-body {
@@ -677,6 +889,8 @@ h2 {
   padding: var(--space-3);
   overflow: auto;
   flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
   font-family: var(--font-mono);
   font-size: var(--text-meta-size);
   line-height: var(--lh-meta);
@@ -711,10 +925,22 @@ h2 {
     align-items: stretch;
   }
 
-  .diff-drawer {
-    left: var(--space-2);
-    right: var(--space-2);
-    width: auto;
+  .review-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(180px, 40%) 1fr;
+  }
+
+  .diff-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .diff-header-controls {
+    align-items: stretch;
+  }
+
+  .diff-header h3 {
+    max-width: 100%;
   }
 
   .review-row {

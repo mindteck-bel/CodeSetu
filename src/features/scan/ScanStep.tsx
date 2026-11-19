@@ -44,7 +44,7 @@ export function ScanStep({
           <p>{scanError}</p>
           <div className="actions">
             <button type="button" className="btn" onClick={onBack}>
-              Back
+              ← Back to Folders
             </button>
             <button type="button" className="btn primary" onClick={onRetry}>
               Retry
@@ -52,9 +52,14 @@ export function ScanStep({
           </div>
         </div>
       ) : (
-        <button type="button" className="btn ghost" onClick={onCancel}>
-          Cancel scan
-        </button>
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={onBack}>
+            ← Back to Folders
+          </button>
+          <button type="button" className="btn ghost" onClick={onCancel}>
+            Cancel scan
+          </button>
+        </div>
       )}
     </section>
   );

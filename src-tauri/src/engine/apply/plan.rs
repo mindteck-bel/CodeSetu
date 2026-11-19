@@ -14,6 +14,7 @@ use crate::engine::paths::{normalize_rel_path, safe_join};
 use crate::engine::snapshot::{save_snapshot, save_snapshot_to, Snapshot};
 use crate::engine::types::{ChangeClass, Decision, FileRow};
 use serde_json::json;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -25,9 +26,12 @@ pub fn apply_plan(
     snapshot: Snapshot,
     require_destructive_confirm: bool,
     confirmed_destructive: bool,
+    only_ids: Option<&[String]>,
 ) -> Result<ApplyReport, String> {
     let first_sync = snapshot.generation == 0 && snapshot.files.is_empty();
-    let preview = preview_apply(rows, first_sync);
+    let preview = preview_apply(rows, first_sync, only_ids);
+    let id_filter: Option<HashSet<&str>> =
+        only_ids.map(|ids| ids.iter().map(|s| s.as_str()).collect());
     if preview.destructive && require_destructive_confirm && !confirmed_destructive {
         return Err(format!(
             "Destructive apply requires confirmation ({} overwrites, {} deletes, {} moves).",
@@ -89,6 +93,12 @@ pub fn apply_plan(
     let mut working = snapshot.clone();
 
     for row in rows {
+        if let Some(ref allowed) = id_filter {
+            if !allowed.contains(row.id.as_str()) {
+                // Out of selective-apply scope — leave file and snapshot entry untouched.
+                continue;
+            }
+        }
         match row.class {
             ChangeClass::IntranetOnly | ChangeClass::InternetOnly | ChangeClass::ParkedSecret => {
                 report.skipped += 1;

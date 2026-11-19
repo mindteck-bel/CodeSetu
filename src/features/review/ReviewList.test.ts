@@ -17,29 +17,30 @@ function row(
 }
 
 describe("ReviewList decision labels", () => {
-  it("never labels deletion as Bring in", () => {
+  it("never labels deletion as Use source", () => {
     const labels = decisionLabelsForTest(
       row({ id: "1", class: "deletedBrought", decision: "skip" }),
     );
     expect(labels.primary).toBe("Delete locally");
-    expect(labels.keep).toBe("Keep Intranet version");
-    expect(labels.primary.toLowerCase()).not.toContain("bring in");
+    expect(labels.keep).toBe("Keep mine");
+    expect(labels.primary.toLowerCase()).not.toContain("use source");
+    expect(labels.primary.toLowerCase()).not.toContain("bring");
   });
 
-  it("uses Bring into Intranet for normal bring-in rows", () => {
+  it("uses Use source for normal bring-in rows", () => {
     const labels = decisionLabelsForTest(
       row({ id: "2", class: "bringIn", decision: "bringIn" }),
     );
-    expect(labels.primary).toBe("Bring into Intranet");
+    expect(labels.primary).toBe("Use source");
   });
 
-  it("switches bring/keep labels in flexible mode", () => {
+  it("uses plain Keep mine in flexible mode", () => {
     const labels = decisionLabelsForTest(
       row({ id: "3", class: "needsYou", decision: "skip" }),
       "flexible",
     );
-    expect(labels.primary).toBe("Bring into destination");
-    expect(labels.keep).toBe("Keep destination version");
+    expect(labels.primary).toBe("Use source");
+    expect(labels.keep).toBe("Keep mine");
   });
 });
 

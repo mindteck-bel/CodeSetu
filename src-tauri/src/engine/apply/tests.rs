@@ -93,6 +93,7 @@ fn copies_bring_in_and_skips_intranet_only() {
             snap,
             false,
             false,
+            None,
         )
         .unwrap();
         assert_eq!(report.applied, 1);
@@ -132,7 +133,7 @@ fn overwrites_existing_file() {
         snap.brought_over = brought.display().to_string();
         snap.files.insert("f.txt".into(), th.clone());
         snap.generation = 1;
-        apply_plan(&this_pc, &brought, &rows, "ow", snap, false, false).unwrap();
+        apply_plan(&this_pc, &brought, &rows, "ow", snap, false, false, None).unwrap();
         assert_eq!(
             fs::read_to_string(this_pc.join("f.txt")).unwrap(),
             "new-content"
@@ -176,6 +177,7 @@ fn undo_restores_files_and_snapshot() {
             snap.clone(),
             false,
             false,
+            None,
         )
         .unwrap();
         assert_eq!(fs::read_to_string(this_pc.join("f.txt")).unwrap(), "remote");
@@ -215,7 +217,7 @@ fn move_undo_restores_both_paths() {
         snap.brought_over = brought.display().to_string();
         snap.files.insert("old/a.txt".into(), h.clone());
         snap.generation = 1;
-        apply_plan(&this_pc, &brought, &rows, "move-sess", snap, false, false).unwrap();
+        apply_plan(&this_pc, &brought, &rows, "move-sess", snap, false, false, None).unwrap();
         assert!(!this_pc.join("old/a.txt").exists());
         assert!(this_pc.join("new/a.txt").exists());
         undo_last().unwrap();
@@ -305,7 +307,7 @@ fn rejects_changed_source_on_revalidate() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("f.txt".into(), th.clone());
-        let report = apply_plan(&this_pc, &brought, &rows, "reval", snap, false, false).unwrap();
+        let report = apply_plan(&this_pc, &brought, &rows, "reval", snap, false, false, None).unwrap();
         assert_eq!(report.failed, 1);
         assert_eq!(fs::read_to_string(this_pc.join("f.txt")).unwrap(), "local");
     });
@@ -331,7 +333,7 @@ fn path_traversal_rejected() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("x".into(), "y".into());
-        let report = apply_plan(&this_pc, &brought, &rows, "trav", snap, false, false).unwrap();
+        let report = apply_plan(&this_pc, &brought, &rows, "trav", snap, false, false, None).unwrap();
         assert_eq!(report.failed, 1);
     });
 }
@@ -361,7 +363,7 @@ fn destructive_confirm_required() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("f.txt".into(), th.clone());
-        let err = apply_plan(&this_pc, &brought, &rows, "conf", snap, true, false).unwrap_err();
+        let err = apply_plan(&this_pc, &brought, &rows, "conf", snap, true, false, None).unwrap_err();
         assert!(err.contains("confirmation"));
     });
 }
@@ -387,7 +389,7 @@ fn first_sync_confirm_required_for_creates() {
         let mut snap = Snapshot::default();
         snap.this_pc = this_pc.display().to_string();
         snap.brought_over = brought.display().to_string();
-        let err = apply_plan(&this_pc, &brought, &rows, "fsync", snap, true, false).unwrap_err();
+        let err = apply_plan(&this_pc, &brought, &rows, "fsync", snap, true, false, None).unwrap_err();
         assert!(err.to_lowercase().contains("first sync"));
     });
 }
@@ -414,10 +416,76 @@ fn unusual_filename_roundtrip() {
         let mut snap = Snapshot::default();
         snap.this_pc = this_pc.display().to_string();
         snap.brought_over = brought.display().to_string();
-        apply_plan(&this_pc, &brought, &rows, "weird", snap, false, true).unwrap();
+        apply_plan(&this_pc, &brought, &rows, "weird", snap, false, true, None).unwrap();
         assert_eq!(
             fs::read_to_string(this_pc.join(name)).unwrap(),
             "unicode-ok"
+        );
+    });
+}
+
+#[test]
+fn selective_apply_only_mutates_selected_ids() {
+    with_data_dir(|data| {
+        let this_pc = data.join("intra");
+        let brought = data.join("inet");
+        fs::create_dir_all(this_pc.join("src")).unwrap();
+        fs::create_dir_all(brought.join("src")).unwrap();
+        fs::write(this_pc.join("src/a.txt"), b"old-a").unwrap();
+        fs::write(this_pc.join("src/b.txt"), b"old-b").unwrap();
+        fs::write(brought.join("src/a.txt"), b"new-a").unwrap();
+        fs::write(brought.join("src/b.txt"), b"new-b").unwrap();
+        let (oa, _) = hash_file(&this_pc.join("src/a.txt")).unwrap();
+        let (ob, _) = hash_file(&this_pc.join("src/b.txt")).unwrap();
+        let (na, _) = hash_file(&brought.join("src/a.txt")).unwrap();
+        let (nb, _) = hash_file(&brought.join("src/b.txt")).unwrap();
+        let rows = vec![
+            row(
+                "src/a.txt",
+                ChangeClass::BringIn,
+                Decision::BringIn,
+                Some(&oa),
+                Some(&na),
+                None,
+            ),
+            row(
+                "src/b.txt",
+                ChangeClass::BringIn,
+                Decision::BringIn,
+                Some(&ob),
+                Some(&nb),
+                None,
+            ),
+        ];
+        let mut snap = Snapshot::default();
+        snap.this_pc = this_pc.display().to_string();
+        snap.brought_over = brought.display().to_string();
+        snap.files.insert("baseline.txt".into(), "x".into());
+        snap.generation = 1;
+        let only = vec!["src/a.txt".into()];
+        let preview = preview_apply(&rows, false, Some(&only));
+        assert_eq!(preview.rows_to_apply, 1);
+        assert_eq!(preview.overwrites, 1);
+        assert_eq!(preview.selected_count, 1);
+        let report = apply_plan(
+            &this_pc,
+            &brought,
+            &rows,
+            "sel-sess",
+            snap,
+            false,
+            false,
+            Some(&only),
+        )
+        .unwrap();
+        assert_eq!(report.applied, 1);
+        assert_eq!(
+            fs::read_to_string(this_pc.join("src/a.txt")).unwrap(),
+            "new-a"
+        );
+        assert_eq!(
+            fs::read_to_string(this_pc.join("src/b.txt")).unwrap(),
+            "old-b"
         );
     });
 }

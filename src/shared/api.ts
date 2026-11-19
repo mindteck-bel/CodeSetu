@@ -28,27 +28,68 @@ export async function updateDecisions(
   sessionId: string,
   updates: [string, Decision][],
 ): Promise<void> {
+  if (sessionId.startsWith("demo-")) return;
   return invoke("update_decisions", { sessionId, updates });
 }
 
 export async function setAllNeedsYou(
   sessionId: string,
   decision: Decision,
+  onlyIds?: string[] | null,
 ): Promise<FileRow[]> {
-  return invoke("set_all_needs_you", { sessionId, decision });
+  if (sessionId.startsWith("demo-")) {
+    return [];
+  }
+  return invoke("set_all_needs_you", {
+    sessionId,
+    decision,
+    onlyIds: onlyIds?.length ? onlyIds : null,
+  });
 }
 
 export async function getApplyPreview(
   sessionId: string,
+  onlyIds?: string[] | null,
 ): Promise<ApplyPreview> {
-  return invoke("get_apply_preview", { sessionId });
+  if (sessionId.startsWith("demo-")) {
+    const n = onlyIds?.length ?? 0;
+    return {
+      creates: 0,
+      overwrites: n || 2,
+      deletes: 0,
+      moves: 0,
+      skips: 0,
+      destructive: true,
+      rowsToApply: n || 2,
+      selectedCount: n || undefined,
+    };
+  }
+  return invoke("get_apply_preview", {
+    sessionId,
+    onlyIds: onlyIds?.length ? onlyIds : null,
+  });
 }
 
 export async function executeApply(
   sessionId: string,
   confirmDestructive: boolean,
+  onlyIds?: string[] | null,
 ): Promise<ApplyReport> {
-  return invoke("execute_apply", { sessionId, confirmDestructive });
+  if (sessionId.startsWith("demo-")) {
+    const n = onlyIds?.length ?? 2;
+    return {
+      applied: n,
+      skipped: 0,
+      failed: 0,
+      failures: [],
+      message: "Demo apply (no filesystem writes)",
+    };
+  }
+  return invoke("execute_apply", {
+    sessionId,
+    confirmDestructive,
+    onlyIds: onlyIds?.length ? onlyIds : null,
+  });
 }
 
 export async function undoApply(): Promise<ApplyReport> {
@@ -63,6 +104,10 @@ export async function getFileDiff(
   sessionId: string,
   relPath: string,
 ): Promise<FileDiff> {
+  if (sessionId.startsWith("demo-")) {
+    const { DEMO_DIFF } = await import("../features/review/reviewDemoData");
+    return { ...DEMO_DIFF, relPath };
+  }
   return invoke("get_file_diff", { sessionId, relPath });
 }
 

@@ -13,13 +13,18 @@ pub fn recover_journals() -> Result<Vec<ApplyReport>, String> {
 #[tauri::command]
 pub fn get_apply_preview(
     session_id: String,
+    only_ids: Option<Vec<String>>,
     state: State<AppState>,
 ) -> Result<ApplyPreview, String> {
     let sessions = state.sessions.lock();
     let session = sessions
         .get(&session_id)
         .ok_or_else(|| "Session expired. Run a new scan.".to_string())?;
-    Ok(preview_apply(&session.rows, session.first_sync))
+    Ok(preview_apply(
+        &session.rows,
+        session.first_sync,
+        only_ids.as_deref(),
+    ))
 }
 
 #[tauri::command]
@@ -47,6 +52,7 @@ pub fn update_decisions(
 pub fn set_all_needs_you(
     session_id: String,
     decision: Decision,
+    only_ids: Option<Vec<String>>,
     state: State<AppState>,
 ) -> Result<Vec<FileRow>, String> {
     let mut sessions = state.sessions.lock();
@@ -55,14 +61,28 @@ pub fn set_all_needs_you(
         .ok_or_else(|| "Session expired. Run a new scan.".to_string())?;
     let epoch = state.ignore_epoch();
     ensure_ignore_fresh(session, epoch)?;
-    if session.first_sync && matches!(decision, Decision::BringIn) {
+    if session.first_sync && matches!(decision, Decision::BringIn) && only_ids.is_none() {
         return Err(
-            "First sync: resolve conflicts one-by-one or confirm apply — bulk Bring In is disabled to avoid overwriting unexpected trees."
+            "First sync: resolve conflicts one-by-one or confirm apply — bulk Use source is disabled to avoid overwriting unexpected trees."
                 .into(),
         );
     }
+    let filter: Option<std::collections::HashSet<String>> =
+        only_ids.map(|ids| ids.into_iter().collect());
     for row in &mut session.rows {
-        if matches!(row.class, crate::engine::ChangeClass::NeedsYou) {
+        let in_scope = match &filter {
+            None => matches!(row.class, crate::engine::ChangeClass::NeedsYou),
+            Some(ids) => {
+                ids.contains(&row.id)
+                    && !matches!(
+                        row.class,
+                        crate::engine::ChangeClass::IntranetOnly
+                            | crate::engine::ChangeClass::InternetOnly
+                            | crate::engine::ChangeClass::ParkedSecret
+                    )
+            }
+        };
+        if in_scope {
             row.decision = decision.clone();
         }
     }
@@ -73,6 +93,7 @@ pub fn set_all_needs_you(
 pub fn execute_apply(
     session_id: String,
     confirm_destructive: bool,
+    only_ids: Option<Vec<String>>,
     state: State<AppState>,
 ) -> Result<ApplyReport, String> {
     let _guard = state.apply_lock.lock();
@@ -98,6 +119,7 @@ pub fn execute_apply(
         snapshot,
         true,
         confirm_destructive,
+        only_ids.as_deref(),
     )
 }
 

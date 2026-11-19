@@ -40,13 +40,38 @@ import { ResultStep } from "./features/result/ResultStep";
 import { ReviewStep } from "./features/review/ReviewStep";
 import { ScanStep } from "./features/scan/ScanStep";
 import { IgnoreRulesSettings } from "./features/settings/IgnoreRulesSettings";
+import { buildReviewDemo } from "./features/review/reviewDemoData";
 import "./styles/App.css";
 
+function demoBootstrap(): {
+  step: Step;
+  result: ScanResult | null;
+  rows: FileRow[];
+  sessionId: string | null;
+  openPath: string | null;
+  filter: ReviewFilter;
+  mode: CompareMode;
+} | null {
+  if (typeof window === "undefined") return null;
+  if (window.location.hash !== "#review-demo") return null;
+  const demo = buildReviewDemo();
+  return {
+    step: "review",
+    result: demo.result,
+    rows: demo.rows,
+    sessionId: demo.result.sessionId,
+    openPath: "package.json",
+    filter: "needsYou",
+    mode: "flexible",
+  };
+}
+
 export default function App() {
-  const [step, setStep] = useState<Step>("pick");
+  const demo = demoBootstrap();
+  const [step, setStep] = useState<Step>(demo?.step ?? "pick");
   const [returnStep, setReturnStep] = useState<Step>("pick");
   const [compareMode, setCompareMode] = useState<CompareMode>(
-    () => readComparePrefs().mode,
+    () => demo?.mode ?? readComparePrefs().mode,
   );
   const [thisPc, setThisPc] = useState(() => readComparePrefs().thisPc);
   const [broughtOver, setBroughtOver] = useState(
@@ -55,14 +80,17 @@ export default function App() {
   const [pickError, setPickError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [rows, setRows] = useState<FileRow[]>([]);
-  const [filter, setFilter] = useState<ReviewFilter>("needsYou");
-  const [openPath, setOpenPath] = useState<string | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(demo?.result ?? null);
+  const [rows, setRows] = useState<FileRow[]>(demo?.rows ?? []);
+  const [filter, setFilter] = useState<ReviewFilter>(demo?.filter ?? "needsYou");
+  const [openPath, setOpenPath] = useState<string | null>(demo?.openPath ?? null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
   const [applyReport, setApplyReport] = useState<ApplyReport | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(
+    demo?.sessionId ?? null,
+  );
   const [preview, setPreview] = useState<ApplyPreview | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
@@ -163,6 +191,8 @@ export default function App() {
             ? "deletions"
             : "bringIn",
       );
+      setSelectedIds(new Set());
+      setOpenPath(null);
       setStep("review");
     } catch (e) {
       setScanError(e instanceof Error ? e.message : String(e));
@@ -191,13 +221,32 @@ export default function App() {
 
   const bulkNeedsYou = async (decision: Decision) => {
     if (!sessionId) return;
+    const only =
+      selectedIds.size > 0 ? Array.from(selectedIds) : null;
+    if (sessionId.startsWith("demo-")) {
+      setRows((prev) =>
+        prev.map((r) => {
+          const inScope = only
+            ? only.includes(r.id) &&
+              r.class !== "intranetOnly" &&
+              r.class !== "internetOnly" &&
+              r.class !== "parkedSecret"
+            : r.class === "needsYou";
+          return inScope ? { ...r, decision } : r;
+        }),
+      );
+      return;
+    }
     try {
-      const updated = await setAllNeedsYou(sessionId, decision);
+      const updated = await setAllNeedsYou(sessionId, decision, only);
       setRows(updated);
     } catch (e) {
       setApplyError(e instanceof Error ? e.message : String(e));
     }
   };
+
+  const selectionIdsOrNull = () =>
+    selectedIds.size > 0 ? Array.from(selectedIds) : null;
 
   const openConfirm = async () => {
     if (!sessionId) return;
@@ -209,7 +258,7 @@ export default function App() {
     }
     setApplyError(null);
     try {
-      const p = await getApplyPreview(sessionId);
+      const p = await getApplyPreview(sessionId, selectionIdsOrNull());
       setPreview(p);
       setShowConfirm(true);
     } catch (e) {
@@ -222,7 +271,11 @@ export default function App() {
     setApplying(true);
     setApplyError(null);
     try {
-      const report = await executeApply(sessionId, confirmDestructive);
+      const report = await executeApply(
+        sessionId,
+        confirmDestructive,
+        selectionIdsOrNull(),
+      );
       setApplyReport(report);
       setShowConfirm(false);
       setStep("result");
@@ -231,6 +284,40 @@ export default function App() {
     } finally {
       setApplying(false);
     }
+  };
+
+  const toggleSelect = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectMany = (ids: string[], selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (selected) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const backFromReview = () => {
+    setStep("pick");
+    setResult(null);
+    setRows([]);
+    setSessionId(null);
+    setOpenPath(null);
+    setSelectedIds(new Set());
+    setApplyError(null);
+    setPreview(null);
+    setShowConfirm(false);
+    setProgress(null);
+    setScanError(null);
   };
 
   const runUndo = async () => {
@@ -250,6 +337,7 @@ export default function App() {
     setSessionId(null);
     setApplyReport(null);
     setOpenPath(null);
+    setSelectedIds(new Set());
     setProgress(null);
     setScanError(null);
     setApplyError(null);
@@ -281,11 +369,35 @@ export default function App() {
               ["review", "3 Review"],
               ["result", "4 Apply"],
             ] as const
-          ).map(([key, label]) => (
-            <li key={key} className={step === key ? "active" : ""}>
-              {label}
-            </li>
-          ))}
+          ).map(([key, label]) => {
+            const canGoBack =
+              (key === "pick" &&
+                (step === "scan" || step === "review" || step === "result")) ||
+              (key === "scan" && step === "review");
+            return (
+              <li key={key} className={step === key ? "active" : ""}>
+                {canGoBack ? (
+                  <button
+                    type="button"
+                    className="step-link"
+                    onClick={() => {
+                      if (key === "pick") {
+                        if (step === "result") reset();
+                        else backFromReview();
+                      } else if (key === "scan" && step === "review") {
+                        // Scan is transient; revisit folders to rescan.
+                        backFromReview();
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  label
+                )}
+              </li>
+            );
+          })}
         </ol>
         <div className="top-actions">
           <label className="sr-only" htmlFor="theme-select">
@@ -354,11 +466,15 @@ export default function App() {
               applyError={applyError}
               sessionId={sessionId}
               openPath={openPath}
+              selectedIds={selectedIds}
               onFilter={setFilter}
               onDecision={onDecision}
               onOpen={setOpenPath}
               onBulkNeedsYou={bulkNeedsYou}
               onApply={openConfirm}
+              onBack={backFromReview}
+              onToggleSelect={toggleSelect}
+              onToggleSelectMany={toggleSelectMany}
             />
           )}
 

@@ -104,6 +104,8 @@ export interface ApplyPreview {
   destructive: boolean;
   rowsToApply: number;
   firstSync?: boolean;
+  /** Present when preview/apply is limited to a checkbox selection. */
+  selectedCount?: number;
 }
 
 export interface IgnorePattern {
