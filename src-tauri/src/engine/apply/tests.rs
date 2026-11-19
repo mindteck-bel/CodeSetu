@@ -217,7 +217,17 @@ fn move_undo_restores_both_paths() {
         snap.brought_over = brought.display().to_string();
         snap.files.insert("old/a.txt".into(), h.clone());
         snap.generation = 1;
-        apply_plan(&this_pc, &brought, &rows, "move-sess", snap, false, false, None).unwrap();
+        apply_plan(
+            &this_pc,
+            &brought,
+            &rows,
+            "move-sess",
+            snap,
+            false,
+            false,
+            None,
+        )
+        .unwrap();
         assert!(!this_pc.join("old/a.txt").exists());
         assert!(this_pc.join("new/a.txt").exists());
         undo_last().unwrap();
@@ -307,7 +317,8 @@ fn rejects_changed_source_on_revalidate() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("f.txt".into(), th.clone());
-        let report = apply_plan(&this_pc, &brought, &rows, "reval", snap, false, false, None).unwrap();
+        let report =
+            apply_plan(&this_pc, &brought, &rows, "reval", snap, false, false, None).unwrap();
         assert_eq!(report.failed, 1);
         assert_eq!(fs::read_to_string(this_pc.join("f.txt")).unwrap(), "local");
     });
@@ -333,7 +344,8 @@ fn path_traversal_rejected() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("x".into(), "y".into());
-        let report = apply_plan(&this_pc, &brought, &rows, "trav", snap, false, false, None).unwrap();
+        let report =
+            apply_plan(&this_pc, &brought, &rows, "trav", snap, false, false, None).unwrap();
         assert_eq!(report.failed, 1);
     });
 }
@@ -363,7 +375,8 @@ fn destructive_confirm_required() {
         snap.brought_over = brought.display().to_string();
         snap.generation = 1;
         snap.files.insert("f.txt".into(), th.clone());
-        let err = apply_plan(&this_pc, &brought, &rows, "conf", snap, true, false, None).unwrap_err();
+        let err =
+            apply_plan(&this_pc, &brought, &rows, "conf", snap, true, false, None).unwrap_err();
         assert!(err.contains("confirmation"));
     });
 }
@@ -389,7 +402,8 @@ fn first_sync_confirm_required_for_creates() {
         let mut snap = Snapshot::default();
         snap.this_pc = this_pc.display().to_string();
         snap.brought_over = brought.display().to_string();
-        let err = apply_plan(&this_pc, &brought, &rows, "fsync", snap, true, false, None).unwrap_err();
+        let err =
+            apply_plan(&this_pc, &brought, &rows, "fsync", snap, true, false, None).unwrap_err();
         assert!(err.to_lowercase().contains("first sync"));
     });
 }

@@ -9,7 +9,7 @@ import {
   collectFileIds,
   defaultExpandedPaths,
   type FileTreeNode,
-} from "./fileTree";
+} from "./buildFileTree";
 
 type Props = {
   mode: CompareMode;

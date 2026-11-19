@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FileRow } from "../../shared/types";
-import { buildFileTree, collectFileIds } from "./fileTree";
+import { buildFileTree, collectFileIds } from "./buildFileTree";
 
 function row(
   partial: Partial<FileRow> & Pick<FileRow, "id" | "relPath" | "class">,
