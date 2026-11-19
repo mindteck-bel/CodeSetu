@@ -11,6 +11,10 @@ pub struct ApplyPreview {
     pub overwrites: u64,
     pub deletes: u64,
     pub moves: u64,
+    /// Intentional Keep mine — destination files stay as-is.
+    #[serde(default)]
+    pub keeps: u64,
+    /// Unresolved Skip or non-applicable zone rows.
     pub skips: u64,
     pub destructive: bool,
     pub rows_to_apply: u64,
@@ -49,7 +53,10 @@ pub fn preview_apply(
             continue;
         }
         match row.decision {
-            Decision::Keep | Decision::Skip => {
+            Decision::Keep => {
+                preview.keeps += 1;
+            }
+            Decision::Skip => {
                 preview.skips += 1;
             }
             Decision::BringIn => {

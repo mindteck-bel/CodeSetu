@@ -9,6 +9,48 @@ type Props = {
   onReset: () => void;
 };
 
+function resultTitle(mode: CompareMode, report: ApplyReport): string {
+  const copy = modeCopy(mode);
+  if (report.recovered) return "Recovered / undone";
+  if ((report.applied ?? 0) > 0) return copy.resultTitle;
+  if ((report.kept ?? 0) > 0) return copy.resultKeptTitle;
+  return copy.resultNothingTitle;
+}
+
+function plural(n: number, one: string, many: string): string {
+  return n === 1 ? `${n} ${one}` : `${n} ${many}`;
+}
+
+function resultSummary(report: ApplyReport): string {
+  if (report.message) return report.message;
+  const parts: string[] = [];
+  if (report.applied > 0) {
+    parts.push(
+      `${plural(report.applied, "file", "files")} updated on destination`,
+    );
+  }
+  if ((report.kept ?? 0) > 0) {
+    parts.push(
+      `${report.kept} kept as mine (destination unchanged)`,
+    );
+  }
+  if (report.skipped > 0) {
+    parts.push(
+      `${report.skipped} left unresolved (Skip) — destination not changed`,
+    );
+  }
+  if (report.failed > 0) {
+    parts.push(`${report.failed} failed`);
+  }
+  if (parts.length === 0) {
+    return "Nothing changed on the destination folder.";
+  }
+  if (report.applied === 0 && report.failed === 0) {
+    return `Nothing written to destination · ${parts.join(" · ")}`;
+  }
+  return parts.join(" · ");
+}
+
 export function ResultStep({
   mode,
   applyReport,
@@ -17,21 +59,15 @@ export function ResultStep({
   onReset,
 }: Props) {
   const copy = modeCopy(mode);
+  const wroteFiles = (applyReport.applied ?? 0) > 0;
   return (
     <section className="card-free result-step enter">
-      <h1>{applyReport.recovered ? "Recovered / undone" : copy.resultTitle}</h1>
-      <p className="lede">
-        {applyReport.message
-          ? applyReport.message
-          : `${applyReport.applied} files updated · ${applyReport.skipped} skipped · ${applyReport.failed} failed`}
-      </p>
+      <h1>{resultTitle(mode, applyReport)}</h1>
+      <p className="lede">{resultSummary(applyReport)}</p>
       {applyReport.journalId && (
         <p className="muted">Journal: {applyReport.journalId}</p>
       )}
-      <p className="muted">
-        Commit and push with your usual Git remote. CodeSetu does not push.
-        Undo restores files and the snapshot baseline.
-      </p>
+      <p className="muted">{wroteFiles ? copy.resultBody : copy.resultBodyNothing}</p>
       {applyReport.failures.length > 0 && (
         <div className="fallback-panel compact">
           <p>Some files failed — others still applied.</p>

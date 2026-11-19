@@ -139,10 +139,14 @@ pub fn classify(
                     ChangeClass::NeedsYou
                 };
 
+                // Conflicts require an explicit Use source / Keep mine choice.
+                // Defaulting to Keep made Apply report "skipped" while quietly
+                // locking the destination version into the snapshot.
                 let decision = match class {
                     ChangeClass::BringIn => Decision::BringIn,
                     ChangeClass::Keep => Decision::Keep,
-                    _ => Decision::Keep,
+                    ChangeClass::NeedsYou => Decision::Skip,
+                    _ => Decision::Skip,
                 };
 
                 match class {
@@ -413,6 +417,7 @@ mod tests {
             let (rows, summary, _) = classify(&this_tree, &brought, &rules, &snap, "s1");
             assert_eq!(summary.needs_you, 1);
             assert_eq!(rows[0].class, ChangeClass::NeedsYou);
+            assert_eq!(rows[0].decision, Decision::Skip);
         });
     }
 

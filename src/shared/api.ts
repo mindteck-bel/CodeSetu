@@ -58,6 +58,7 @@ export async function getApplyPreview(
       overwrites: n || 2,
       deletes: 0,
       moves: 0,
+      keeps: 0,
       skips: 0,
       destructive: true,
       rowsToApply: n || 2,
@@ -79,10 +80,14 @@ export async function executeApply(
     const n = onlyIds?.length ?? 2;
     return {
       applied: n,
+      kept: 0,
       skipped: 0,
       failed: 0,
       failures: [],
-      message: "Demo apply (no filesystem writes)",
+      message:
+        n === 1
+          ? "1 file updated on destination (demo — no filesystem writes)"
+          : `${n} files updated on destination (demo — no filesystem writes)`,
     };
   }
   return invoke("execute_apply", {

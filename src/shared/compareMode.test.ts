@@ -103,6 +103,25 @@ describe("label mapping", () => {
     );
   });
 
+  it("result copy stays local-folder only (no Git push/pull)", () => {
+    for (const mode of ["airgap", "flexible"] as const) {
+      const copy = modeCopy(mode);
+      const blob = [
+        copy.resultTitle,
+        copy.resultKeptTitle,
+        copy.resultNothingTitle,
+        copy.resultBody,
+        copy.resultBodyNothing,
+      ].join(" ");
+      expect(blob.toLowerCase()).not.toContain("git");
+      expect(blob.toLowerCase()).not.toContain("push");
+      expect(blob.toLowerCase()).not.toContain("commit");
+      expect(blob.toLowerCase()).not.toContain("remote");
+      expect(copy.resultBody.toLowerCase()).toMatch(/folder|intranet|destination/);
+      expect(copy.resultNothingTitle.toLowerCase()).toContain("nothing");
+    }
+  });
+
   it("never labels deletions as use-source in either mode", () => {
     for (const mode of ["airgap", "flexible"] as const) {
       const labels = {

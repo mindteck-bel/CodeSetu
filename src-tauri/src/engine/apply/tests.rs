@@ -439,6 +439,170 @@ fn unusual_filename_roundtrip() {
 }
 
 #[test]
+fn keep_mine_is_not_counted_as_skipped() {
+    with_data_dir(|data| {
+        let this_pc = data.join("intra");
+        let brought = data.join("inet");
+        fs::create_dir_all(&this_pc).unwrap();
+        fs::create_dir_all(&brought).unwrap();
+        fs::write(this_pc.join("a.txt"), b"mine").unwrap();
+        fs::write(brought.join("a.txt"), b"source").unwrap();
+        let (mine, _) = hash_file(&this_pc.join("a.txt")).unwrap();
+        let (src, _) = hash_file(&brought.join("a.txt")).unwrap();
+        let rows = vec![row(
+            "a.txt",
+            ChangeClass::NeedsYou,
+            Decision::Keep,
+            Some(&mine),
+            Some(&src),
+            None,
+        )];
+        let mut snap = Snapshot::default();
+        snap.this_pc = this_pc.display().to_string();
+        snap.brought_over = brought.display().to_string();
+        snap.files.insert("baseline.txt".into(), "x".into());
+        snap.generation = 1;
+        let report = apply_plan(
+            &this_pc,
+            &brought,
+            &rows,
+            "keep-sess",
+            snap,
+            false,
+            false,
+            None,
+        )
+        .unwrap();
+        assert_eq!(report.applied, 0);
+        assert_eq!(report.kept, 1);
+        assert_eq!(report.skipped, 0);
+        assert_eq!(fs::read_to_string(this_pc.join("a.txt")).unwrap(), "mine");
+        assert!(report
+            .message
+            .as_deref()
+            .unwrap_or("")
+            .contains("kept as mine"));
+    });
+}
+
+#[test]
+fn unresolved_skip_only_refuses_apply() {
+    with_data_dir(|data| {
+        let this_pc = data.join("intra");
+        let brought = data.join("inet");
+        fs::create_dir_all(&this_pc).unwrap();
+        fs::create_dir_all(&brought).unwrap();
+        fs::write(this_pc.join("a.txt"), b"mine").unwrap();
+        fs::write(brought.join("a.txt"), b"source").unwrap();
+        let (mine, _) = hash_file(&this_pc.join("a.txt")).unwrap();
+        let (src, _) = hash_file(&brought.join("a.txt")).unwrap();
+        let rows = vec![row(
+            "a.txt",
+            ChangeClass::NeedsYou,
+            Decision::Skip,
+            Some(&mine),
+            Some(&src),
+            None,
+        )];
+        let mut snap = Snapshot::default();
+        snap.this_pc = this_pc.display().to_string();
+        snap.brought_over = brought.display().to_string();
+        snap.files.insert("baseline.txt".into(), "x".into());
+        snap.generation = 1;
+        let err = apply_plan(
+            &this_pc,
+            &brought,
+            &rows,
+            "skip-sess",
+            snap,
+            false,
+            false,
+            Some(&["a.txt".into()]),
+        )
+        .unwrap_err();
+        assert!(err.contains("Nothing to apply"), "unexpected err: {err}");
+        assert_eq!(fs::read_to_string(this_pc.join("a.txt")).unwrap(), "mine");
+    });
+}
+
+#[test]
+fn selective_use_source_writes_destination() {
+    with_data_dir(|data| {
+        let this_pc = data.join("intra");
+        let brought = data.join("inet");
+        fs::create_dir_all(&this_pc).unwrap();
+        fs::create_dir_all(&brought).unwrap();
+        fs::write(this_pc.join("pkg.json"), b"{\"v\":1}").unwrap();
+        fs::write(brought.join("pkg.json"), b"{\"v\":2}").unwrap();
+        let (old_h, _) = hash_file(&this_pc.join("pkg.json")).unwrap();
+        let (new_h, _) = hash_file(&brought.join("pkg.json")).unwrap();
+        let rows = vec![row(
+            "pkg.json",
+            ChangeClass::NeedsYou,
+            Decision::BringIn,
+            Some(&old_h),
+            Some(&new_h),
+            None,
+        )];
+        let mut snap = Snapshot::default();
+        snap.this_pc = this_pc.display().to_string();
+        snap.brought_over = brought.display().to_string();
+        snap.files.insert("baseline.txt".into(), "x".into());
+        snap.generation = 1;
+        let only = vec!["pkg.json".into()];
+        let before = fs::read_to_string(this_pc.join("pkg.json")).unwrap();
+        let report = apply_plan(
+            &this_pc,
+            &brought,
+            &rows,
+            "use-src",
+            snap,
+            false,
+            false,
+            Some(&only),
+        )
+        .unwrap();
+        assert_eq!(report.applied, 1);
+        assert_eq!(report.skipped, 0);
+        let after = fs::read_to_string(this_pc.join("pkg.json")).unwrap();
+        assert_eq!(after, "{\"v\":2}");
+        assert_ne!(before, after);
+        assert!(
+            report
+                .message
+                .as_deref()
+                .unwrap_or("")
+                .contains("1 file updated on destination"),
+            "message={:?}",
+            report.message
+        );
+
+        // Optional durable proof for walkthrough media (set CODESETU_DEMO_DIR).
+        if let Ok(demo) = std::env::var("CODESETU_DEMO_DIR") {
+            let root = Path::new(&demo);
+            let dest = root.join("destination");
+            let src = root.join("source");
+            let _ = fs::create_dir_all(&dest);
+            let _ = fs::create_dir_all(&src);
+            let _ = fs::write(dest.join("pkg.json.before"), before.as_bytes());
+            let _ = fs::write(src.join("pkg.json"), b"{\"v\":2}");
+            let _ = fs::write(dest.join("pkg.json"), after.as_bytes());
+            let _ = fs::write(
+                root.join("apply-report.txt"),
+                format!(
+                    "applied={} kept={} skipped={} failed={}\nmessage={}\n",
+                    report.applied,
+                    report.kept,
+                    report.skipped,
+                    report.failed,
+                    report.message.as_deref().unwrap_or("")
+                ),
+            );
+        }
+    });
+}
+
+#[test]
 fn selective_apply_only_mutates_selected_ids() {
     with_data_dir(|data| {
         let this_pc = data.join("intra");

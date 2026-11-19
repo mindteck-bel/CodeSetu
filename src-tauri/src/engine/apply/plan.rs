@@ -32,6 +32,16 @@ pub fn apply_plan(
     let preview = preview_apply(rows, first_sync, only_ids);
     let id_filter: Option<HashSet<&str>> =
         only_ids.map(|ids| ids.iter().map(|s| s.as_str()).collect());
+    if preview.rows_to_apply == 0 && preview.keeps == 0 {
+        let scope = if preview.selected_count > 0 {
+            "selected file(s)"
+        } else {
+            "files"
+        };
+        return Err(format!(
+            "Nothing to apply — choose Use source or Keep mine on the {scope} first. Unresolved Skip leaves the destination unchanged."
+        ));
+    }
     if preview.destructive && require_destructive_confirm && !confirmed_destructive {
         return Err(format!(
             "Destructive apply requires confirmation ({} overwrites, {} deletes, {} moves).",
@@ -108,17 +118,20 @@ pub fn apply_plan(
         }
 
         match row.decision {
-            Decision::Keep | Decision::Skip => {
-                report.skipped += 1;
-                if row.decision == Decision::Keep {
-                    if let Some(h) = &row.this_hash {
-                        working.files.insert(row.rel_path.clone(), h.clone());
-                    }
-                    if matches!(row.class, ChangeClass::DeletedBrought) {
-                        // Persist "keep despite remote absence" so incomplete copies don't nag.
-                        working.keep_despite_absent.insert(row.rel_path.clone());
-                    }
+            Decision::Keep => {
+                // Keep mine: leave destination bytes alone; accept current baseline.
+                report.kept += 1;
+                if let Some(h) = &row.this_hash {
+                    working.files.insert(row.rel_path.clone(), h.clone());
                 }
+                if matches!(row.class, ChangeClass::DeletedBrought) {
+                    // Persist "keep despite remote absence" so incomplete copies don't nag.
+                    working.keep_despite_absent.insert(row.rel_path.clone());
+                }
+                continue;
+            }
+            Decision::Skip => {
+                report.skipped += 1;
                 continue;
             }
             Decision::BringIn => {}
@@ -313,14 +326,59 @@ pub fn apply_plan(
     write_atomic(&latest, session_id.as_bytes())?;
     report.journal_id = Some(session_id.to_string());
     let _ = snapshot;
+    // Plain local-folder summary — never Git push/pull language.
+    if report.message.is_none() {
+        report.message = Some(summarize_apply(&report));
+    }
     diag::log_event(
         "apply.commit",
         json!({
             "sessionId": session_id,
             "applied": report.applied,
+            "kept": report.kept,
             "failed": report.failed,
             "skipped": report.skipped,
         }),
     );
     Ok(report)
+}
+
+fn plural(n: u64, one: &str, many: &str) -> String {
+    if n == 1 {
+        format!("{n} {one}")
+    } else {
+        format!("{n} {many}")
+    }
+}
+
+fn summarize_apply(report: &ApplyReport) -> String {
+    let mut parts = Vec::new();
+    if report.applied > 0 {
+        parts.push(format!(
+            "{} updated on destination",
+            plural(report.applied, "file", "files")
+        ));
+    }
+    if report.kept > 0 {
+        parts.push(format!(
+            "{} kept as mine (destination unchanged)",
+            report.kept
+        ));
+    }
+    if report.skipped > 0 {
+        parts.push(format!(
+            "{} left unresolved (Skip) — destination not changed",
+            report.skipped
+        ));
+    }
+    if report.failed > 0 {
+        parts.push(format!("{} failed", report.failed));
+    }
+    if parts.is_empty() {
+        "Nothing changed on the destination folder.".into()
+    } else if report.applied == 0 && report.failed == 0 {
+        format!("Nothing written to destination · {}", parts.join(" · "))
+    } else {
+        parts.join(" · ")
+    }
 }

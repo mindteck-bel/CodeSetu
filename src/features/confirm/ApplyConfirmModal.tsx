@@ -19,6 +19,9 @@ export function ApplyConfirmModal({
   onConfirm,
 }: Props) {
   const copy = modeCopy(mode);
+  const keeps = preview.keeps ?? 0;
+  const willWrite = preview.rowsToApply > 0;
+  const nothingToDo = !willWrite && keeps === 0;
   const needsGate = preview.destructive || Boolean(preview.firstSync);
   return (
     <div className="modal-backdrop" role="presentation">
@@ -49,8 +52,21 @@ export function ApplyConfirmModal({
             {preview.deletes} local deletions
           </li>
           <li>{preview.moves} moves</li>
-          <li>{preview.skips} skipped</li>
+          <li>{keeps} keep mine (destination unchanged)</li>
+          <li>{preview.skips} unresolved (Skip)</li>
         </ul>
+        {nothingToDo && (
+          <p className="error-line">
+            Nothing will change on the destination. Choose Use source or Keep
+            mine on the selected files first.
+          </p>
+        )}
+        {!willWrite && keeps > 0 && (
+          <p className="warn-line">
+            No files will be written — Keep mine leaves destination bytes as
+            they are and updates the sync baseline.
+          </p>
+        )}
         {preview.deletes > 0 && (
           <p className="error-line">{copy.deleteWarning}</p>
         )}
@@ -69,16 +85,18 @@ export function ApplyConfirmModal({
             className={
               preview.destructive ? "btn destructive" : "btn primary"
             }
-            disabled={applying}
+            disabled={applying || nothingToDo}
             onClick={onConfirm}
           >
             {applying
               ? "Applying…"
-              : needsGate
-                ? preview.firstSync && !preview.destructive
-                  ? "Confirm first sync apply"
-                  : "Confirm destructive apply"
-                : "Apply"}
+              : nothingToDo
+                ? "Nothing to apply"
+                : needsGate
+                  ? preview.firstSync && !preview.destructive
+                    ? "Confirm first sync apply"
+                    : "Confirm destructive apply"
+                  : "Apply"}
           </button>
         </div>
       </div>

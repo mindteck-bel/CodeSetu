@@ -95,6 +95,10 @@ export type ModeCopy = {
   summaryDestOnly: string;
   summarySourceOnly: string;
   resultTitle: string;
+  resultKeptTitle: string;
+  resultNothingTitle: string;
+  resultBody: string;
+  resultBodyNothing: string;
   bringTitle: string;
   keepTitle: string;
   conflictTitle: string;
@@ -150,7 +154,13 @@ const AIRGAP: ModeCopy = {
   summaryConflict: "conflicts",
   summaryDestOnly: "intranet-only",
   summarySourceOnly: "internet-only",
-  resultTitle: "Sync applied",
+  resultTitle: "Intranet folder updated",
+  resultKeptTitle: "Kept mine — Intranet unchanged",
+  resultNothingTitle: "Nothing changed on Intranet",
+  resultBody:
+    "Only the Intranet folder on This PC was updated. The Internet / source folder was not modified. Undo restores Intranet files and the sync baseline.",
+  resultBodyNothing:
+    "No files were written to Intranet. Choose Use source or Keep mine, then Apply again. Undo restores the last successful apply if one exists.",
   bringTitle: "Use source",
   keepTitle: "Keep mine",
   conflictTitle: "Conflict",
@@ -208,7 +218,13 @@ const FLEXIBLE: ModeCopy = {
   summaryConflict: "conflicts",
   summaryDestOnly: "destination-only",
   summarySourceOnly: "source-only",
-  resultTitle: "Changes applied",
+  resultTitle: "Destination folder updated",
+  resultKeptTitle: "Kept mine — destination unchanged",
+  resultNothingTitle: "Nothing changed on destination",
+  resultBody:
+    "Only the destination folder on This PC was updated. The source folder was not modified. Undo restores destination files and the sync baseline.",
+  resultBodyNothing:
+    "No files were written to the destination. Choose Use source or Keep mine, then Apply again. Undo restores the last successful apply if one exists.",
   bringTitle: "Use source",
   keepTitle: "Keep mine",
   conflictTitle: "Conflict",

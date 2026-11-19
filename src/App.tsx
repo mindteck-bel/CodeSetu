@@ -51,9 +51,53 @@ function demoBootstrap(): {
   openPath: string | null;
   filter: ReviewFilter;
   mode: CompareMode;
+  applyReport?: ApplyReport | null;
 } | null {
   if (typeof window === "undefined") return null;
-  if (window.location.hash !== "#review-demo") return null;
+  const hash = window.location.hash;
+  if (hash === "#result-ok-demo") {
+    const demo = buildReviewDemo();
+    return {
+      step: "result",
+      result: demo.result,
+      rows: demo.rows,
+      sessionId: "demo-result-ok",
+      openPath: null,
+      filter: "needsYou",
+      mode: "flexible",
+      applyReport: {
+        applied: 1,
+        kept: 0,
+        skipped: 0,
+        failed: 0,
+        failures: [],
+        journalId: "demo-journal-ok",
+        message: "1 file updated on destination",
+      },
+    };
+  }
+  if (hash === "#result-nothing-demo") {
+    const demo = buildReviewDemo();
+    return {
+      step: "result",
+      result: demo.result,
+      rows: demo.rows,
+      sessionId: "demo-result-nothing",
+      openPath: null,
+      filter: "needsYou",
+      mode: "flexible",
+      applyReport: {
+        applied: 0,
+        kept: 0,
+        skipped: 1,
+        failed: 0,
+        failures: [],
+        message:
+          "Nothing written to destination · 1 left unresolved (Skip) — destination not changed",
+      },
+    };
+  }
+  if (hash !== "#review-demo") return null;
   const demo = buildReviewDemo();
   return {
     step: "review",
@@ -86,7 +130,9 @@ export default function App() {
   const [openPath, setOpenPath] = useState<string | null>(demo?.openPath ?? null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
-  const [applyReport, setApplyReport] = useState<ApplyReport | null>(null);
+  const [applyReport, setApplyReport] = useState<ApplyReport | null>(
+    demo?.applyReport ?? null,
+  );
   const [applyError, setApplyError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(
     demo?.sessionId ?? null,
@@ -258,7 +304,30 @@ export default function App() {
     }
     setApplyError(null);
     try {
-      const p = await getApplyPreview(sessionId, selectionIdsOrNull());
+      const only = selectionIdsOrNull();
+      // Demo preview is synthetic; for real sessions also gate on local rows so
+      // unresolved Skip cannot look like a successful destination apply.
+      if (only && only.length > 0) {
+        const selected = rows.filter((r) => only.includes(r.id));
+        const actionable = selected.filter(
+          (r) =>
+            r.decision === "bringIn" ||
+            r.decision === "keep",
+        );
+        if (actionable.length === 0) {
+          setApplyError(
+            "Nothing will change on the destination. Choose Use source or Keep mine on the selected file(s), then Apply.",
+          );
+          return;
+        }
+      }
+      const p = await getApplyPreview(sessionId, only);
+      if (p.rowsToApply === 0 && (p.keeps ?? 0) === 0) {
+        setApplyError(
+          "Nothing will change on the destination. Choose Use source or Keep mine first — unresolved Skip leaves files untouched.",
+        );
+        return;
+      }
       setPreview(p);
       setShowConfirm(true);
     } catch (e) {

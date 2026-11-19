@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct ApplyReport {
     pub applied: u64,
+    /// Intentional Keep mine — destination bytes unchanged; baseline updated.
+    #[serde(default)]
+    pub kept: u64,
+    /// Unresolved Skip, or rows that cannot be applied (env/secret zones).
     pub skipped: u64,
     pub failed: u64,
     pub failures: Vec<String>,

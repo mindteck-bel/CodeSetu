@@ -84,6 +84,8 @@ export interface FileDiff {
 
 export interface ApplyReport {
   applied: number;
+  /** Intentional Keep mine — destination bytes unchanged; baseline updated. */
+  kept?: number;
   skipped: number;
   failed: number;
   failures: string[];
@@ -100,6 +102,8 @@ export interface ApplyPreview {
   overwrites: number;
   deletes: number;
   moves: number;
+  /** Intentional Keep mine — destination files stay as-is. */
+  keeps?: number;
   skips: number;
   destructive: boolean;
   rowsToApply: number;
