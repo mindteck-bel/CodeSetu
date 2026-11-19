@@ -3,9 +3,11 @@
 mod apply_cmds;
 mod folders;
 mod ignore_cmds;
+mod pilot;
 mod scan;
 
 pub use apply_cmds::*;
 pub use folders::*;
 pub use ignore_cmds::*;
+pub use pilot::*;
 pub use scan::*;

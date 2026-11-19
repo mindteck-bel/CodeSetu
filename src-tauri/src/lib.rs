@@ -36,6 +36,11 @@ pub fn run() {
             delete_ignore_pattern,
             export_ignore_rules,
             import_ignore_rules,
+            export_diagnostics,
+            get_sync_history,
+            get_project_profiles,
+            upsert_project_profile,
+            remove_project_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CodeSetu");

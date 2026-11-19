@@ -45,8 +45,16 @@ Use **Settings → Ignore Rules** for categories (VCS, deps, build, IDE, OS, tem
 - **Undo** restores file bytes **and** the snapshot baseline
 - Incomplete USB/copies never become mass deletions
 - Destructive apply requires confirmation; deletions are labeled **Delete locally**, never “Bring into Intranet”
+- Deletion applies require typing **DELETE** in the confirm dialog
 - Path traversal rejected on all filesystem ops; hashes revalidated before apply
 - See [`docs/APPLY_TRANSACTION_PROTOCOL.md`](docs/APPLY_TRANSACTION_PROTOCOL.md) (recoverable transaction protocol — not multi-file atomicity)
+
+## Pilot tools (Phase 2)
+
+- **Project profiles** — save/load named destination + source pairs (Folders step)
+- **Sync history** — local apply/undo/recover log under Settings → Pilot tools
+- **Diagnostic export** — offline JSON report (logs + history + journal status); never uploaded
+- Ops guide: [`docs/PILOT_RUNBOOK.md`](docs/PILOT_RUNBOOK.md)
 
 ## Layout
 
@@ -64,4 +72,5 @@ npm test
 npm run build
 ```
 
-Windows desktop GUI checklist: [`docs/WINDOWS_BETA_CHECKLIST.md`](docs/WINDOWS_BETA_CHECKLIST.md).
+Windows desktop GUI checklist: [`docs/WINDOWS_BETA_CHECKLIST.md`](docs/WINDOWS_BETA_CHECKLIST.md).  
+Enterprise pilot runbook: [`docs/PILOT_RUNBOOK.md`](docs/PILOT_RUNBOOK.md).

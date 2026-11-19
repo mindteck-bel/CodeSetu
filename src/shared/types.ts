@@ -148,3 +148,28 @@ export type ReviewFilter =
   | "deletions"
   | "other"
   | "all";
+
+/** Local sync history row (Phase 2 pilot). */
+export interface HistoryEntry {
+  ts: string;
+  kind: string;
+  thisPc?: string;
+  broughtOver?: string;
+  journalId?: string;
+  applied: number;
+  kept: number;
+  skipped: number;
+  failed: number;
+  deletes: number;
+  message?: string;
+}
+
+/** Named folder-pair shortcut (Phase 2 pilot). */
+export interface ProjectProfile {
+  id: string;
+  name: string;
+  mode: string;
+  thisPc: string;
+  broughtOver: string;
+  updatedAt: string;
+}

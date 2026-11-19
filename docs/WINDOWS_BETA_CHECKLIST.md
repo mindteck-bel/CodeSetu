@@ -40,3 +40,16 @@ True desktop folder-picker / Tauri dialog flows still need a Windows machine.
 - [ ] Crash recovery verified once
 - [ ] Incomplete copy does not offer mass deletions
 - [ ] No silent overwrites of local edits after scan
+
+---
+
+## Phase 2 pilot additions
+
+Ops detail: [`PILOT_RUNBOOK.md`](PILOT_RUNBOOK.md).
+
+1. **Project profile:** save current folder pair → restart app → Load profile → paths restore.
+2. **Typed delete confirm:** Internet-deleted file → Apply → must type `DELETE` before confirm enables.
+3. **Failure UX:** force a locked/unwritable destination file during apply (optional) → Result shows failures + Undo + Export diagnostics.
+4. **Diagnostics export:** Settings → Pilot tools → export JSON → open offline; contains `reportKind: pilot-diagnostics` and recent history/log events.
+5. **Sync history:** after an apply, Settings history list shows an Apply row (local only).
+6. **Removable media:** copy tree to USB, eject/reinsert (letter may change), re-pick or update profile, scan without false mass deletions.

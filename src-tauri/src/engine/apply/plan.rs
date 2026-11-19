@@ -340,6 +340,12 @@ pub fn apply_plan(
             "skipped": report.skipped,
         }),
     );
+    crate::engine::history::record_from_report(
+        "apply",
+        Some(&this_pc.display().to_string()),
+        Some(&brought_over.display().to_string()),
+        &report,
+    );
     Ok(report)
 }
 

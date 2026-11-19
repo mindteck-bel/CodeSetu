@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   cancelScan,
   executeApply,
+  exportDiagnostics,
   getApplyPreview,
+  getProjectProfiles,
   recoverJournals,
+  removeProjectProfile,
   setAllNeedsYou,
   startScan,
   undoApply,
   updateDecisions,
+  upsertProjectProfile,
   validateFolder,
 } from "./shared/api";
 import {
@@ -30,16 +34,19 @@ import type {
   Decision,
   FileRow,
   ProgressEvent,
+  ProjectProfile,
   ReviewFilter,
   ScanResult,
   Step,
 } from "./shared/types";
+import { formatUserError } from "./shared/userError";
 import { ApplyConfirmModal } from "./features/confirm/ApplyConfirmModal";
 import { PickStep } from "./features/pick/PickStep";
 import { ResultStep } from "./features/result/ResultStep";
 import { ReviewStep } from "./features/review/ReviewStep";
 import { ScanStep } from "./features/scan/ScanStep";
 import { IgnoreRulesSettings } from "./features/settings/IgnoreRulesSettings";
+import { PilotToolsSettings } from "./features/settings/PilotToolsSettings";
 import { buildReviewDemo } from "./features/review/reviewDemoData";
 import "./styles/App.css";
 
@@ -52,6 +59,8 @@ function demoBootstrap(): {
   filter: ReviewFilter;
   mode: CompareMode;
   applyReport?: ApplyReport | null;
+  showConfirm?: boolean;
+  preview?: ApplyPreview | null;
 } | null {
   if (typeof window === "undefined") return null;
   const hash = window.location.hash;
@@ -97,6 +106,55 @@ function demoBootstrap(): {
       },
     };
   }
+  if (hash === "#result-fail-demo") {
+    const demo = buildReviewDemo();
+    return {
+      step: "result",
+      result: demo.result,
+      rows: demo.rows,
+      sessionId: "demo-result-fail",
+      openPath: null,
+      filter: "needsYou",
+      mode: "flexible",
+      applyReport: {
+        applied: 2,
+        kept: 0,
+        skipped: 0,
+        failed: 2,
+        failures: [
+          "src/locked.rs: Access is denied. (os error 5)",
+          "config/local.toml: The process cannot access the file",
+        ],
+        journalId: "demo-journal-partial",
+        message: "2 files updated on destination · 2 failed",
+      },
+    };
+  }
+  if (hash === "#confirm-delete-demo") {
+    const demo = buildReviewDemo();
+    return {
+      step: "review",
+      result: demo.result,
+      rows: demo.rows,
+      sessionId: "demo-confirm-delete",
+      openPath: "package.json",
+      filter: "needsYou",
+      mode: "flexible",
+      showConfirm: true,
+      preview: {
+        creates: 1,
+        overwrites: 2,
+        deletes: 3,
+        moves: 0,
+        keeps: 0,
+        skips: 1,
+        destructive: true,
+        rowsToApply: 6,
+        firstSync: false,
+        selectedCount: 6,
+      },
+    };
+  }
   if (hash !== "#review-demo") return null;
   const demo = buildReviewDemo();
   return {
@@ -137,15 +195,30 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string | null>(
     demo?.sessionId ?? null,
   );
-  const [preview, setPreview] = useState<ApplyPreview | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [preview, setPreview] = useState<ApplyPreview | null>(
+    demo?.preview ?? null,
+  );
+  const [showConfirm, setShowConfirm] = useState(Boolean(demo?.showConfirm));
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     readThemePreference(),
   );
   const [rulesDirty, setRulesDirty] = useState(false);
   const [recoveryNote, setRecoveryNote] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<ProjectProfile[]>([]);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [diagBusy, setDiagBusy] = useState(false);
+  const [diagMessage, setDiagMessage] = useState<string | null>(null);
 
   const copy = modeCopy(compareMode);
+
+  const refreshProfiles = useCallback(() => {
+    getProjectProfiles()
+      .then(setProfiles)
+      .catch(() => {
+        /* browser / offline best-effort */
+      });
+  }, []);
 
   useEffect(() => {
     writeComparePrefs({ mode: compareMode, thisPc, broughtOver });
@@ -191,7 +264,8 @@ export default function App() {
       .catch(() => {
         /* offline/startup best-effort */
       });
-  }, []);
+    refreshProfiles();
+  }, [refreshProfiles]);
 
   const pickFolder = async (side: "this" | "brought") => {
     try {
@@ -207,7 +281,7 @@ export default function App() {
         setPickError(null);
       }
     } catch (e) {
-      setPickError(e instanceof Error ? e.message : String(e));
+      setPickError(formatUserError(e));
     }
   };
 
@@ -220,7 +294,7 @@ export default function App() {
       await validateFolder(thisPc);
       await validateFolder(broughtOver);
     } catch (e) {
-      setPickError(e instanceof Error ? e.message : String(e));
+      setPickError(formatUserError(e));
       return;
     }
     setStep("scan");
@@ -241,7 +315,71 @@ export default function App() {
       setOpenPath(null);
       setStep("review");
     } catch (e) {
-      setScanError(e instanceof Error ? e.message : String(e));
+      setScanError(formatUserError(e));
+    }
+  };
+
+  const runExportDiagnostics = async () => {
+    setDiagBusy(true);
+    setDiagMessage(null);
+    try {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const dest = await save({
+        defaultPath: `codesetu-diagnostics-${stamp}.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+        title: "Export CodeSetu diagnostic report",
+      });
+      if (typeof dest !== "string" || !dest) {
+        setDiagMessage("Export cancelled.");
+        return;
+      }
+      const written = await exportDiagnostics(dest);
+      setDiagMessage(`Saved diagnostic report to ${written}`);
+    } catch (e) {
+      setDiagMessage(formatUserError(e));
+    } finally {
+      setDiagBusy(false);
+    }
+  };
+
+  const onLoadProfile = (profile: ProjectProfile) => {
+    setCompareMode(profile.mode === "flexible" ? "flexible" : "airgap");
+    setThisPc(profile.thisPc);
+    setBroughtOver(profile.broughtOver);
+    setPickError(null);
+    setProfileMessage(`Loaded profile “${profile.name}”.`);
+  };
+
+  const onSaveProfile = async (name: string) => {
+    setProfileBusy(true);
+    setProfileMessage(null);
+    try {
+      const saved = await upsertProjectProfile({
+        name,
+        mode: compareMode,
+        thisPc,
+        broughtOver,
+      });
+      setProfileMessage(`Saved profile “${saved.name}”.`);
+      refreshProfiles();
+    } catch (e) {
+      setProfileMessage(formatUserError(e));
+    } finally {
+      setProfileBusy(false);
+    }
+  };
+
+  const onDeleteProfile = async (id: string) => {
+    setProfileBusy(true);
+    setProfileMessage(null);
+    try {
+      await removeProjectProfile(id);
+      setProfileMessage("Profile deleted.");
+      refreshProfiles();
+    } catch (e) {
+      setProfileMessage(formatUserError(e));
+    } finally {
+      setProfileBusy(false);
     }
   };
 
@@ -259,7 +397,7 @@ export default function App() {
       try {
         await updateDecisions(sessionId, [[id, decision]]);
       } catch (e) {
-        setApplyError(e instanceof Error ? e.message : String(e));
+        setApplyError(formatUserError(e));
       }
     },
     [sessionId],
@@ -287,7 +425,7 @@ export default function App() {
       const updated = await setAllNeedsYou(sessionId, decision, only);
       setRows(updated);
     } catch (e) {
-      setApplyError(e instanceof Error ? e.message : String(e));
+      setApplyError(formatUserError(e));
     }
   };
 
@@ -331,7 +469,7 @@ export default function App() {
       setPreview(p);
       setShowConfirm(true);
     } catch (e) {
-      setApplyError(e instanceof Error ? e.message : String(e));
+      setApplyError(formatUserError(e));
     }
   };
 
@@ -349,7 +487,7 @@ export default function App() {
       setShowConfirm(false);
       setStep("result");
     } catch (e) {
-      setApplyError(e instanceof Error ? e.message : String(e));
+      setApplyError(formatUserError(e));
     } finally {
       setApplying(false);
     }
@@ -395,7 +533,7 @@ export default function App() {
       const report = await undoApply();
       setApplyReport(report);
     } catch (e) {
-      setApplyError(e instanceof Error ? e.message : String(e));
+      setApplyError(formatUserError(e));
     }
   };
 
@@ -494,11 +632,18 @@ export default function App() {
       <main className="stage">
         <ErrorBoundary fallbackTitle="Main view failed">
           {step === "settings" && (
-            <IgnoreRulesSettings
-              projectPath={thisPc || undefined}
-              onClose={() => setStep(returnStep)}
-              onRulesChanged={() => setRulesDirty(true)}
-            />
+            <div className="settings-stack enter">
+              <IgnoreRulesSettings
+                projectPath={thisPc || undefined}
+                onClose={() => setStep(returnStep)}
+                onRulesChanged={() => setRulesDirty(true)}
+              />
+              <PilotToolsSettings
+                diagBusy={diagBusy}
+                diagMessage={diagMessage}
+                onExportDiagnostics={runExportDiagnostics}
+              />
+            </div>
           )}
 
           {step === "pick" && (
@@ -508,9 +653,16 @@ export default function App() {
               broughtOver={broughtOver}
               pickError={pickError}
               recoveryNote={recoveryNote}
+              profiles={profiles}
+              profileBusy={profileBusy}
+              profileMessage={profileMessage}
               onModeChange={setCompareMode}
               onPick={pickFolder}
               onScan={beginScan}
+              onDismissRecovery={() => setRecoveryNote(null)}
+              onLoadProfile={onLoadProfile}
+              onSaveProfile={onSaveProfile}
+              onDeleteProfile={onDeleteProfile}
             />
           )}
 
@@ -552,8 +704,11 @@ export default function App() {
               mode={compareMode}
               applyReport={applyReport}
               applyError={applyError}
+              diagBusy={diagBusy}
+              diagMessage={diagMessage}
               onUndo={runUndo}
               onReset={reset}
+              onExportDiagnostics={runExportDiagnostics}
             />
           )}
         </ErrorBoundary>

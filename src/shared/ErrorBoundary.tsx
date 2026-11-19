@@ -23,6 +23,11 @@ export class ErrorBoundary extends Component<Props, State> {
             The panel crashed, but CodeSetu is still running. Your folders were
             not modified by this error.
           </p>
+          <p className="muted tiny">
+            Recovery: try again, or return to Folders and rescan. If it repeats,
+            use Settings → Pilot tools → Export diagnostic report and share it
+            with your pilot contact (local file only).
+          </p>
           <pre className="fallback-detail">{this.state.error.message}</pre>
           <button
             type="button"

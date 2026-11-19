@@ -35,6 +35,12 @@ pub fn recover_incomplete() -> Result<Vec<ApplyReport>, String> {
             "apply.recover",
             format!("Rolled back incomplete journal {}", journal.session_id),
         );
+        crate::engine::history::record_from_report(
+            "recover",
+            Some(&journal.this_pc),
+            Some(&journal.brought_over),
+            &report,
+        );
         reports.push(report);
     }
     Ok(reports)
@@ -67,6 +73,12 @@ pub fn undo_last() -> Result<ApplyReport, String> {
             "applied": report.applied,
             "failed": report.failed,
         }),
+    );
+    crate::engine::history::record_from_report(
+        "undo",
+        Some(&marked.this_pc),
+        Some(&marked.brought_over),
+        &report,
     );
     Ok(report)
 }

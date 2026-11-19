@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import type { ApplyPreview } from "../../shared/types";
 
@@ -23,6 +24,11 @@ export function ApplyConfirmModal({
   const willWrite = preview.rowsToApply > 0;
   const nothingToDo = !willWrite && keeps === 0;
   const needsGate = preview.destructive || Boolean(preview.firstSync);
+  const needsDeleteAck = preview.deletes > 0;
+  const [deleteAck, setDeleteAck] = useState("");
+  const deleteOk = !needsDeleteAck || deleteAck.trim().toUpperCase() === "DELETE";
+  const canConfirm = !applying && !nothingToDo && deleteOk;
+
   return (
     <div className="modal-backdrop" role="presentation">
       <div
@@ -70,6 +76,23 @@ export function ApplyConfirmModal({
         {preview.deletes > 0 && (
           <p className="error-line">{copy.deleteWarning}</p>
         )}
+        {needsDeleteAck && (
+          <label className="confirm-ack">
+            <span>
+              Type <strong>DELETE</strong> to confirm local deletions (Undo is
+              available after apply if something goes wrong):
+            </span>
+            <input
+              className="search-input"
+              value={deleteAck}
+              onChange={(e) => setDeleteAck(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              aria-label="Type DELETE to confirm deletions"
+              disabled={applying}
+            />
+          </label>
+        )}
         {applyError && <p className="error-line">{applyError}</p>}
         <div className="actions">
           <button
@@ -85,18 +108,20 @@ export function ApplyConfirmModal({
             className={
               preview.destructive ? "btn destructive" : "btn primary"
             }
-            disabled={applying || nothingToDo}
+            disabled={!canConfirm}
             onClick={onConfirm}
           >
             {applying
               ? "Applying…"
               : nothingToDo
                 ? "Nothing to apply"
-                : needsGate
-                  ? preview.firstSync && !preview.destructive
-                    ? "Confirm first sync apply"
-                    : "Confirm destructive apply"
-                  : "Apply"}
+                : !deleteOk
+                  ? "Type DELETE to continue"
+                  : needsGate
+                    ? preview.firstSync && !preview.destructive
+                      ? "Confirm first sync apply"
+                      : "Confirm destructive apply"
+                    : "Apply"}
           </button>
         </div>
       </div>

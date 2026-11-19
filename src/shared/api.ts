@@ -5,7 +5,9 @@ import type {
   Decision,
   FileDiff,
   FileRow,
+  HistoryEntry,
   IgnoreRulesView,
+  ProjectProfile,
   ScanResult,
 } from "./types";
 
@@ -208,4 +210,36 @@ export async function importIgnoreRules(
     projectPath: projectPath ?? null,
     asProject,
   });
+}
+
+export async function exportDiagnostics(destPath: string): Promise<string> {
+  return invoke("export_diagnostics", { destPath });
+}
+
+export async function getSyncHistory(limit = 40): Promise<HistoryEntry[]> {
+  return invoke("get_sync_history", { limit });
+}
+
+export async function getProjectProfiles(): Promise<ProjectProfile[]> {
+  return invoke("get_project_profiles");
+}
+
+export async function upsertProjectProfile(input: {
+  name: string;
+  mode: string;
+  thisPc: string;
+  broughtOver: string;
+  replaceId?: string | null;
+}): Promise<ProjectProfile> {
+  return invoke("upsert_project_profile", {
+    name: input.name,
+    mode: input.mode,
+    thisPc: input.thisPc,
+    broughtOver: input.broughtOver,
+    replaceId: input.replaceId ?? null,
+  });
+}
+
+export async function removeProjectProfile(id: string): Promise<void> {
+  return invoke("remove_project_profile", { id });
 }

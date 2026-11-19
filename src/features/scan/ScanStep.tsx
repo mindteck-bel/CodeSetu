@@ -40,14 +40,20 @@ export function ScanStep({
         <div className="pulse-bar" />
       </div>
       {scanError ? (
-        <div className="fallback-panel">
+        <div className="fallback-panel" role="alert">
+          <p className="eyebrow">Scan failed</p>
           <p>{scanError}</p>
+          <p className="muted tiny">
+            Common fixes: re-select folders if a USB letter changed, confirm both
+            paths are readable, then retry. No destination files were modified by
+            this scan.
+          </p>
           <div className="actions">
             <button type="button" className="btn" onClick={onBack}>
               ← Back to Folders
             </button>
             <button type="button" className="btn primary" onClick={onRetry}>
-              Retry
+              Retry scan
             </button>
           </div>
         </div>
