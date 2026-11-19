@@ -75,10 +75,7 @@ fn read_recent_log_lines(max: usize) -> Vec<serde_json::Value> {
     let Ok(file) = fs::File::open(log_path()) else {
         return vec![];
     };
-    let mut lines: Vec<String> = BufReader::new(file)
-        .lines()
-        .map_while(Result::ok)
-        .collect();
+    let mut lines: Vec<String> = BufReader::new(file).lines().map_while(Result::ok).collect();
     if lines.len() > max {
         lines = lines.split_off(lines.len() - max);
     }
