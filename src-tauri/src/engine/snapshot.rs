@@ -18,10 +18,10 @@ pub struct Snapshot {
     pub generation: u64,
     /// rel_path -> content hash at last successful apply / identical commit
     pub files: HashMap<String, String>,
-    /// Paths the user chose to keep locally despite absence on brought-over.
+    /// Paths the user chose to keep locally despite absence on the source tree.
     #[serde(default)]
     pub keep_despite_absent: HashSet<String>,
-    /// Last known brought-over file count (for incomplete-copy heuristics).
+    /// Last known source-tree file count (for incomplete-copy heuristics).
     #[serde(default)]
     pub last_brought_file_count: u64,
 }

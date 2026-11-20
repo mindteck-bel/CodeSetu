@@ -44,9 +44,9 @@ export function ScanStep({
           <p className="eyebrow">Scan failed</p>
           <p>{scanError}</p>
           <p className="muted tiny">
-            Common fixes: re-select folders if a USB letter changed, confirm both
-            paths are readable, then retry. No destination files were modified by
-            this scan.
+            Common fixes: re-select both folders if a path moved or is missing,
+            confirm both paths are readable, then retry. No destination files were
+            modified by this scan.
           </p>
           <div className="actions">
             <button type="button" className="btn" onClick={onBack}>

@@ -27,7 +27,7 @@ export function formatUserError(raw: unknown): string {
     return `${message} Recovery: check folder permissions or close locks held by other apps.`;
   }
   if (lower.includes("does not exist") || lower.includes("cannot find")) {
-    return `${message} Recovery: re-select both folders; USB paths often change drive letters.`;
+    return `${message} Recovery: re-select both folders; paths may have moved or become unavailable.`;
   }
   if (lower.includes("disk") || lower.includes("space") || lower.includes("no space")) {
     return `${message} Recovery: free disk space on the destination drive, then retry.`;

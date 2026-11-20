@@ -298,14 +298,14 @@ fn detect_incomplete(brought_tree: &TreeIndex, snapshot: &Snapshot) -> Option<St
         let expected = snapshot.last_brought_file_count;
         if actual < ((expected as f64) * INCOMPLETE_RATIO) as u64 {
             return Some(format!(
-                "Brought-over tree looks incomplete ({actual} files vs last known {expected}). Deletions suppressed."
+                "Source tree looks incomplete ({actual} files vs last known {expected}). Deletions suppressed."
             ));
         }
     } else if !snapshot.files.is_empty() {
         let expected = snapshot.files.len() as u64;
         if expected >= 20 && actual < ((expected as f64) * INCOMPLETE_RATIO) as u64 {
             return Some(format!(
-                "Brought-over tree has far fewer files ({actual}) than the last baseline ({expected}). Deletions suppressed — verify the USB/copy is complete."
+                "Source tree has far fewer files ({actual}) than the last baseline ({expected}). Deletions suppressed — verify the source folder is a complete project copy."
             ));
         }
     }

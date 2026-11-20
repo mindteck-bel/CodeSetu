@@ -4,7 +4,7 @@ Local-first ops guide for Phase 2 pilots (3–5 developers). CodeSetu never requ
 
 ## Goals
 
-- Sync the same project across air-gapped and internet-connected trees via USB / approved media.
+- Compare two local copies of the same project (intranet and internet) and apply shared changes onto This PC.
 - Keep destination (This PC / Intranet) writes explicit, reviewable, and undoable.
 - Collect enough local diagnostics to triage issues without shipping secrets automatically.
 
@@ -22,13 +22,12 @@ Local-first ops guide for Phase 2 pilots (3–5 developers). CodeSetu never requ
 4. **Review:** resolve **Needs you**; use selective checkboxes when applying a subset.
 5. **Apply:** confirm counts. If deletions are present, type **DELETE** to enable confirm.
 6. **Result:** verify counts / journal id. Use **Undo last apply** if the tree looks wrong.
-7. Copy the updated tree back over USB if the other environment needs it.
 
-## Incomplete USB / removable media
+## Incomplete source copy
 
-- After a baseline exists, a partial brought tree should **not** offer mass deletions (warning on Review).
-- If a USB letter changes between sessions, re-select folders or reload the profile after updating paths.
-- Prefer copying the whole project tree before scanning; do not scan mid-copy.
+- After a baseline exists, a partial source tree should **not** offer mass deletions (warning on Review).
+- If a folder path changed between sessions, re-select folders or reload the profile after updating paths.
+- Confirm both folders are full project trees before scanning.
 
 ## Crash / recovery
 
@@ -39,7 +38,7 @@ Local-first ops guide for Phase 2 pilots (3–5 developers). CodeSetu never requ
 ## Diagnostics export
 
 1. Settings → **Pilot tools** → **Export diagnostic report**, or Result → **Export diagnostics**.
-2. Choose a local `.json` path (USB ok). The file is **not** uploaded.
+2. Choose a local `.json` path. The file is **not** uploaded.
 3. Review before sharing: it includes recent log events, sync history, journal status, OS/arch, and local data-dir path (may reveal project locations).
 4. Hand the file to your pilot contact over approved channels.
 
@@ -49,7 +48,7 @@ Local-first ops guide for Phase 2 pilots (3–5 developers). CodeSetu never requ
 | --- | --- |
 | Session expired / ignore rules dirty | Rescan from Folders |
 | Partial apply failures | Undo → fix locks/permissions → rescan → selective apply |
-| USB path missing | Re-pick folders; update profile |
+| Folder path missing | Re-pick folders; update profile |
 | Mass unexpected creates (first sync) | Cancel; confirm you picked the correct pair |
 | Unexpected deletions offered | Check incomplete-copy warning; do not confirm DELETE |
 

@@ -116,13 +116,13 @@ const AIRGAP: ModeCopy = {
   tagline: "Bridge Intranet ↔ Internet code",
   pickTitle: "Pick the two folders",
   pickLede:
-    "Only the Intranet folder on This PC will be updated. The Internet / brought-over copy stays read-only.",
+    "Only the Intranet folder on This PC will be updated. The Internet copy stays read-only.",
   destinationEyebrow: "Intranet · This PC · will change",
-  sourceEyebrow: "Internet · brought over · read only",
+  sourceEyebrow: "Internet · This PC · read only",
   chooseDestination: "Choose Intranet folder",
   chooseSource: "Choose Internet folder",
   dialogDestination: "Choose Intranet folder on This PC (will be updated)",
-  dialogSource: "Choose Internet / brought-over folder (read only)",
+  dialogSource: "Choose Internet folder (read only)",
   reviewArrow: "Mine (Intranet) ← Source (Internet)",
   sideLegend:
     "Left = mine (Intranet on This PC) · Right = source (Internet, read-only). Conflicts need an explicit choice.",
@@ -158,7 +158,7 @@ const AIRGAP: ModeCopy = {
   resultKeptTitle: "Kept mine — Intranet unchanged",
   resultNothingTitle: "Nothing changed on Intranet",
   resultBody:
-    "Only the Intranet folder on This PC was updated. The Internet / source folder was not modified. Undo restores Intranet files and the sync baseline.",
+    "Only the Intranet folder on This PC was updated. The Internet folder was not modified. Undo restores Intranet files and the sync baseline.",
   resultBodyNothing:
     "No files were written to Intranet. Choose Use source or Keep mine, then Apply again. Undo restores the last successful apply if one exists.",
   bringTitle: "Use source",
@@ -293,7 +293,7 @@ export const MODE_OPTIONS: {
     id: "airgap",
     title: "Air-gap sync (Intranet / Internet)",
     description:
-      "Classic workflow: bring changes from the Internet copy into Intranet on This PC.",
+      "Compare two local copies — Intranet and Internet — on This PC. Apply updates Intranet only.",
   },
   {
     id: "flexible",
