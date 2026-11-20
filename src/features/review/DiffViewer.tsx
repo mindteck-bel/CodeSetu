@@ -6,6 +6,7 @@ import {
   primaryActionLabel,
   type CompareMode,
 } from "../../shared/compareMode";
+import { folderCaption } from "../../shared/folderLabel";
 import type { Decision, FileDiff, FileRow } from "../../shared/types";
 
 export type DiffLayout = "split" | "unified";
@@ -15,6 +16,8 @@ type Props = {
   sessionId: string;
   relPath: string;
   row: FileRow | null;
+  destinationPath: string;
+  sourcePath: string;
   layout: DiffLayout;
   onLayoutChange: (layout: DiffLayout) => void;
   onDecision: (id: string, decision: Decision) => void;
@@ -25,11 +28,15 @@ export function DiffViewer({
   sessionId,
   relPath,
   row,
+  destinationPath,
+  sourcePath,
   layout,
   onLayoutChange,
   onDecision,
 }: Props) {
   const copy = modeCopy(mode);
+  const dest = folderCaption(destinationPath);
+  const source = folderCaption(sourcePath);
   const [diff, setDiff] = useState<FileDiff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +71,9 @@ export function DiffViewer({
     <div className="diff-pane" aria-label="File diff">
       <div className="diff-header">
         <div className="diff-header-text">
-          <p className="eyebrow">{copy.diffEyebrow}</p>
+          <p className="eyebrow">
+            {dest.name} (left) vs {source.name} (right)
+          </p>
           <h3>{relPath}</h3>
           <p className="muted tiny">{copy.diffHint}</p>
           {row?.error && (
@@ -143,7 +152,13 @@ export function DiffViewer({
           {diff.kind === "text" && layout === "split" && (
             <div className="diff-grid">
               <div className="diff-col">
-                <div className="diff-col-title">{copy.diffLeftTitle}</div>
+                <div className="diff-col-title" title={dest.full || undefined}>
+                  <span className="diff-folder-name">{dest.name}</span>
+                  <span className="diff-folder-role">{copy.diffLeftTitle}</span>
+                  {dest.pathHint ? (
+                    <span className="diff-folder-path">{dest.pathHint}</span>
+                  ) : null}
+                </div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "insert" ? null : (
@@ -155,7 +170,13 @@ export function DiffViewer({
                 </pre>
               </div>
               <div className="diff-col">
-                <div className="diff-col-title">{copy.diffRightTitle}</div>
+                <div className="diff-col-title" title={source.full || undefined}>
+                  <span className="diff-folder-name">{source.name}</span>
+                  <span className="diff-folder-role">{copy.diffRightTitle}</span>
+                  {source.pathHint ? (
+                    <span className="diff-folder-path">{source.pathHint}</span>
+                  ) : null}
+                </div>
                 <pre className="diff-body">
                   {diff.hunks.map((h, i) =>
                     h.tag === "delete" ? null : (
@@ -170,7 +191,9 @@ export function DiffViewer({
           )}
           {diff.kind === "text" && layout === "unified" && (
             <div className="diff-unified">
-              <div className="diff-col-title">Unified diff</div>
+              <div className="diff-col-title">
+                Unified · −{dest.name} / +{source.name}
+              </div>
               <pre className="diff-body">
                 {diff.hunks.map((h, i) => {
                   if (h.tag === "equal") {

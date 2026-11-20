@@ -2,7 +2,7 @@
 
 Local desktop app (BSTC / Mindteck) that bridges **Intranet** and **Internet** copies of the same codebase.
 
-You copy one side onto the other PC (USB), pick both folders, review what changed, and apply only the shared changes onto **This PC (Intranet)**. CodeSetu never pushes and never needs a server or cloud database.
+At compare time you have two local folders—one Intranet, one Internet. Pick both, review what changed, and apply only the shared changes onto **This PC (Intranet)**. CodeSetu never pushes and never needs a server or cloud database.
 
 ## Why
 
@@ -43,7 +43,7 @@ Use **Settings → Ignore Rules** for categories (VCS, deps, build, IDE, OS, tem
 - Only **Intranet / This PC** is written
 - Durable per-file replace (Windows-safe) + **journal-first** apply + crash recovery
 - **Undo** restores file bytes **and** the snapshot baseline
-- Incomplete USB/copies never become mass deletions
+- Incomplete source copies never become mass deletions
 - Destructive apply requires confirmation; deletions are labeled **Delete locally**, never “Bring into Intranet”
 - Deletion applies require typing **DELETE** in the confirm dialog
 - Path traversal rejected on all filesystem ops; hashes revalidated before apply

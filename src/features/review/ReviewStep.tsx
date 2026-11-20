@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import { ErrorBoundary } from "../../shared/ErrorBoundary";
+import { FolderPairBar } from "../../shared/FolderPairBar";
 import type {
   Decision,
   FileRow,
@@ -76,6 +77,11 @@ export function ReviewStep({
             <h1>Review changes</h1>
           </div>
           <p className="lede summary-line">{summaryLine}</p>
+          <FolderPairBar
+            mode={mode}
+            destinationPath={result.thisPc}
+            sourcePath={result.broughtOver}
+          />
           <p className="muted tiny">
             {copy.reviewArrow} · {(result.summary.elapsedMs / 1000).toFixed(1)}s
             · {result.summary.identical} identical hidden · {copy.sideLegend}
@@ -184,6 +190,8 @@ export function ReviewStep({
                 sessionId={sessionId}
                 relPath={openPath}
                 row={openRow}
+                destinationPath={result.thisPc}
+                sourcePath={result.broughtOver}
                 layout={diffLayout}
                 onLayoutChange={setDiffLayout}
                 onDecision={onDecision}

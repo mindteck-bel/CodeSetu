@@ -86,6 +86,9 @@ describe("label mapping", () => {
     expect(copy.applyButton).toBe("Apply all");
     expect(copy.destinationEyebrow).toContain("Intranet");
     expect(copy.sourceEyebrow).toContain("Internet");
+    expect(copy.sourceEyebrow.toLowerCase()).not.toContain("brought");
+    expect(copy.pickLede.toLowerCase()).not.toContain("brought");
+    expect(copy.dialogSource.toLowerCase()).not.toContain("brought");
     expect(changeClassLabel("airgap", "needsYou")).toBe("Conflict");
     expect(changeClassLabel("airgap", "internetOnly")).toBe("Internet only");
   });

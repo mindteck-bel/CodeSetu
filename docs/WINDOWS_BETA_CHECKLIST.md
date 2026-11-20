@@ -20,7 +20,7 @@ True desktop folder-picker / Tauri dialog flows still need a Windows machine.
 ## Safety scenarios
 
 1. **Crash mid-apply:** kill process during a large apply; relaunch — recovery note appears; tree restored.
-2. **Incomplete USB:** after a full sync baseline, bring a partial copy — deletions suppressed with warning.
+2. **Incomplete source copy:** after a full sync baseline, scan against a partial Internet/source tree — deletions suppressed with warning.
 3. **Ignore rules:** enable/disable categories; custom pattern; rescan required before apply; ignored paths never listed as deletions.
 4. **Conflict:** edit same file on both sides independently — Needs you with conflict hint; no silent overwrite.
 5. **Destructive delete:** Internet-deleted file — chip says **Delete locally**; confirm modal requires acknowledgment.
@@ -52,4 +52,4 @@ Ops detail: [`PILOT_RUNBOOK.md`](PILOT_RUNBOOK.md).
 3. **Failure UX:** force a locked/unwritable destination file during apply (optional) → Result shows failures + Undo + Export diagnostics.
 4. **Diagnostics export:** Settings → Pilot tools → export JSON → open offline; contains `reportKind: pilot-diagnostics` and recent history/log events.
 5. **Sync history:** after an apply, Settings history list shows an Apply row (local only).
-6. **Removable media:** copy tree to USB, eject/reinsert (letter may change), re-pick or update profile, scan without false mass deletions.
+6. **Path change:** relocate or re-point one folder path, re-pick or update profile, scan without false mass deletions.

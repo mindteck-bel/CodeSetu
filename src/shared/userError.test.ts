@@ -9,6 +9,12 @@ describe("formatUserError", () => {
   it("passes through plain messages", () => {
     expect(formatUserError("Boom")).toBe("Boom");
   });
+
+  it("suggests re-selecting folders when a path is missing", () => {
+    const out = formatUserError("Path does not exist");
+    expect(out).toMatch(/re-select both folders/i);
+    expect(out.toLowerCase()).not.toContain("usb");
+  });
 });
 
 describe("failureRecoveryHint", () => {

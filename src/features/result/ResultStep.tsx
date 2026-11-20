@@ -1,10 +1,13 @@
 import { modeCopy, type CompareMode } from "../../shared/compareMode";
+import { FolderPairBar } from "../../shared/FolderPairBar";
 import { failureRecoveryHint } from "../../shared/userError";
 import type { ApplyReport } from "../../shared/types";
 
 type Props = {
   mode: CompareMode;
   applyReport: ApplyReport;
+  destinationPath: string;
+  sourcePath: string;
   applyError: string | null;
   diagBusy?: boolean;
   diagMessage?: string | null;
@@ -62,6 +65,8 @@ function resultSummary(report: ApplyReport): string {
 export function ResultStep({
   mode,
   applyReport,
+  destinationPath,
+  sourcePath,
   applyError,
   diagBusy,
   diagMessage,
@@ -80,6 +85,12 @@ export function ResultStep({
   return (
     <section className="card-free result-step enter">
       <h1>{resultTitle(mode, applyReport)}</h1>
+      <FolderPairBar
+        mode={mode}
+        destinationPath={destinationPath}
+        sourcePath={sourcePath}
+        compact
+      />
       <p className="lede">{resultSummary(applyReport)}</p>
       {applyReport.journalId && (
         <p className="muted">Journal: {applyReport.journalId}</p>

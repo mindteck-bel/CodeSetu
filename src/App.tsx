@@ -155,6 +155,18 @@ function demoBootstrap(): {
       },
     };
   }
+  if (hash === "#settings-demo") {
+    const demo = buildReviewDemo();
+    return {
+      step: "settings",
+      result: demo.result,
+      rows: demo.rows,
+      sessionId: null,
+      openPath: null,
+      filter: "needsYou",
+      mode: "flexible",
+    };
+  }
   if (hash !== "#review-demo") return null;
   const demo = buildReviewDemo();
   return {
@@ -175,9 +187,11 @@ export default function App() {
   const [compareMode, setCompareMode] = useState<CompareMode>(
     () => demo?.mode ?? readComparePrefs().mode,
   );
-  const [thisPc, setThisPc] = useState(() => readComparePrefs().thisPc);
+  const [thisPc, setThisPc] = useState(
+    () => demo?.result?.thisPc ?? readComparePrefs().thisPc,
+  );
   const [broughtOver, setBroughtOver] = useState(
-    () => readComparePrefs().broughtOver,
+    () => demo?.result?.broughtOver ?? readComparePrefs().broughtOver,
   );
   const [pickError, setPickError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
@@ -703,6 +717,8 @@ export default function App() {
             <ResultStep
               mode={compareMode}
               applyReport={applyReport}
+              destinationPath={thisPc}
+              sourcePath={broughtOver}
               applyError={applyError}
               diagBusy={diagBusy}
               diagMessage={diagMessage}
@@ -718,6 +734,8 @@ export default function App() {
         <ApplyConfirmModal
           mode={compareMode}
           preview={preview}
+          destinationPath={thisPc}
+          sourcePath={broughtOver}
           applying={applying}
           applyError={applyError}
           onCancel={() => setShowConfirm(false)}
