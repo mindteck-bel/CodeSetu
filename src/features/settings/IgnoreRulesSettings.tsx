@@ -321,15 +321,22 @@ export function IgnoreRulesSettings({
 
       <div className="import-box">
         <p className="eyebrow">Import JSON</p>
+        <p className="muted tiny">
+          Paste exported ignore-rules JSON. Import replaces matching rules
+          locally — nothing is uploaded.
+        </p>
         <textarea
           value={importText}
           onChange={(e) => setImportText(e.target.value)}
           rows={4}
           placeholder="Paste exported ignore-rules JSON"
+          aria-label="Ignore rules JSON to import"
         />
-        <button type="button" className="btn" onClick={onImport}>
-          Import
-        </button>
+        <div className="import-box-actions">
+          <button type="button" className="btn" onClick={onImport}>
+            Import
+          </button>
+        </div>
       </div>
 
       {error && <p className="error-line">{error}</p>}

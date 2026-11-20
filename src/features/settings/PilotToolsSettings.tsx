@@ -61,9 +61,7 @@ export function PilotToolsSettings({
       </div>
       {diagMessage && <p className="muted tiny">{diagMessage}</p>}
 
-      <p className="eyebrow" style={{ marginTop: "1.25rem" }}>
-        Recent sync history
-      </p>
+      <p className="eyebrow history-heading">Recent sync history</p>
       {error && <p className="error-line">{error}</p>}
       {!error && history.length === 0 && (
         <p className="muted tiny">No apply / undo events recorded yet.</p>

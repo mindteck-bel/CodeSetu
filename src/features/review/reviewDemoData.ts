@@ -58,8 +58,8 @@ export function buildReviewDemo(): { result: ScanResult; rows: FileRow[] } {
 
   const result: ScanResult = {
     sessionId: "demo-review-session",
-    thisPc: "C:/demo/intranet",
-    broughtOver: "C:/demo/internet",
+    thisPc: "C:/Users/naveen/projects/intranet",
+    broughtOver: "C:/Users/naveen/projects/internet",
     summary: {
       totalThis: 120,
       totalBrought: 118,

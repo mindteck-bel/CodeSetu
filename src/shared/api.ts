@@ -118,9 +118,66 @@ export async function getFileDiff(
   return invoke("get_file_diff", { sessionId, relPath });
 }
 
+function browserDemoShell(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    !(window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__
+  );
+}
+
+const DEMO_IGNORE_VIEW: IgnoreRulesView = {
+  version: 1,
+  categories: [
+    {
+      id: "vcs",
+      label: "Version control",
+      explanation: "Git / VCS metadata",
+      enabled: true,
+      activeCount: 3,
+      totalCount: 3,
+    },
+    {
+      id: "deps",
+      label: "Dependencies",
+      explanation: "node_modules and package caches",
+      enabled: true,
+      activeCount: 4,
+      totalCount: 4,
+    },
+    {
+      id: "build",
+      label: "Build outputs",
+      explanation: "dist, target, build folders",
+      enabled: true,
+      activeCount: 5,
+      totalCount: 5,
+    },
+    {
+      id: "ide",
+      label: "IDE / editor",
+      explanation: "Editor config and caches",
+      enabled: true,
+      activeCount: 3,
+      totalCount: 3,
+    },
+  ],
+  patterns: [],
+  categoryEnabled: {
+    vcs: true,
+    deps: true,
+    build: true,
+    ide: true,
+  },
+  effectivePatterns: ["**/.git/**", "**/node_modules/**", "**/dist/**"],
+  warnings: [],
+};
+
 export async function getIgnoreRules(
   projectPath?: string | null,
 ): Promise<IgnoreRulesView> {
+  if (browserDemoShell()) {
+    return DEMO_IGNORE_VIEW;
+  }
   return invoke("get_ignore_rules", {
     projectPath: projectPath ?? null,
   });
@@ -217,6 +274,33 @@ export async function exportDiagnostics(destPath: string): Promise<string> {
 }
 
 export async function getSyncHistory(limit = 40): Promise<HistoryEntry[]> {
+  if (browserDemoShell()) {
+    return [
+      {
+        ts: "2026-11-20T20:48:02.000Z",
+        kind: "apply",
+        applied: 1,
+        kept: 0,
+        skipped: 0,
+        failed: 0,
+        deletes: 0,
+        journalId: "3c1acd51-demo",
+        message: "1 file updated on destination",
+      },
+      {
+        ts: "2026-11-20T20:46:45.000Z",
+        kind: "apply",
+        applied: 0,
+        kept: 1,
+        skipped: 0,
+        failed: 0,
+        deletes: 0,
+        journalId: "d8815b46-demo",
+        message:
+          "Nothing written to destination · 1 kept as mine (destination unchanged)",
+      },
+    ].slice(0, limit);
+  }
   return invoke("get_sync_history", { limit });
 }
 

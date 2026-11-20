@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { modeCopy, type CompareMode } from "../../shared/compareMode";
+import { FolderPairBar } from "../../shared/FolderPairBar";
 import type { ApplyPreview } from "../../shared/types";
 
 type Props = {
   mode: CompareMode;
   preview: ApplyPreview;
+  destinationPath: string;
+  sourcePath: string;
   applying: boolean;
   applyError: string | null;
   onCancel: () => void;
@@ -14,6 +17,8 @@ type Props = {
 export function ApplyConfirmModal({
   mode,
   preview,
+  destinationPath,
+  sourcePath,
   applying,
   applyError,
   onCancel,
@@ -38,6 +43,12 @@ export function ApplyConfirmModal({
         aria-labelledby="confirm-title"
       >
         <h2 id="confirm-title">{copy.confirmTitle}</h2>
+        <FolderPairBar
+          mode={mode}
+          destinationPath={destinationPath}
+          sourcePath={sourcePath}
+          compact
+        />
         <p>{copy.confirmBody}</p>
         {preview.firstSync && (
           <p className="warn-line">
