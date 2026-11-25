@@ -34,6 +34,12 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/nsis/installer.ico",
+        "uninstallerIcon": "icons/nsis/installer.ico"
+      }
+    }
   }
 }
