@@ -77,11 +77,18 @@ export function DiffViewer({
     <div className="diff-pane" aria-label="File diff">
       <div className="diff-header">
         <div className="diff-header-text">
-          <p className="eyebrow">
-            {source.name} (source) → {dest.name} (destination)
+          <h3>
+            {relPath}
+            {row?.class === "needsYou" ? (
+              <span className="diff-file-badge">Conflict</span>
+            ) : null}
+          </h3>
+          <p
+            className="muted tiny diff-pair-line"
+            title={`${source.full} → ${dest.full}`}
+          >
+            Source: {source.name} → Destination: {dest.name}
           </p>
-          <h3>{relPath}</h3>
-          <p className="muted tiny">{copy.diffHint}</p>
           {row?.error && (
             <p className="muted tiny conflict-hint">{row.error}</p>
           )}

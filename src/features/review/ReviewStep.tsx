@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { modeCopy, type CompareMode } from "../../shared/compareMode";
 import { ErrorBoundary } from "../../shared/ErrorBoundary";
-import { FolderPairBar } from "../../shared/FolderPairBar";
 import type {
   Decision,
   FileRow,
@@ -55,7 +54,6 @@ export function ReviewStep({
 }: Props) {
   const copy = modeCopy(mode);
   const s = result.summary;
-  const summaryLine = `${s.bringIn} ${copy.summaryBringIn} · ${s.keep} ${copy.summaryKeep} · ${s.needsYou} ${copy.summaryConflict} · ${s.deletedBrought} deletions · ${s.intranetOnly} ${copy.summaryDestOnly} · ${s.internetOnly} ${copy.summarySourceOnly}`;
   const firstSync = Boolean(s.firstSync);
   const hasSelection = selectedIds.size > 0;
   const [diffLayout, setDiffLayout] = useState<DiffLayout>("split");
@@ -67,29 +65,34 @@ export function ReviewStep({
   );
 
   return (
-    <section className="review-step enter">
-      <div className="review-head">
-        <div>
+    <section className="review-step enter compact">
+      <div className="review-head compact">
+        <div className="review-head-main">
           <div className="review-title-row">
             <button type="button" className="btn ghost" onClick={onBack}>
-              ← Back to Folders
+              ← Back
             </button>
             <h1>Review changes</h1>
+            <div className="review-stat-pills" aria-label="Change summary">
+              <span className="stat-pill">
+                {s.needsYou} {copy.filterConflict}
+              </span>
+              <span className="stat-pill">
+                {s.keep} {copy.filterKeep}
+              </span>
+              <span className="stat-pill">
+                {s.bringIn} {copy.filterBringIn}
+              </span>
+              {s.deletedBrought > 0 && (
+                <span className="stat-pill">
+                  {s.deletedBrought} deletions
+                </span>
+              )}
+            </div>
           </div>
-          <p className="lede summary-line">{summaryLine}</p>
-          <FolderPairBar
-            mode={mode}
-            destinationPath={result.thisPc}
-            sourcePath={result.broughtOver}
-          />
-          <p className="muted tiny">
-            {copy.reviewArrow} · {(result.summary.elapsedMs / 1000).toFixed(1)}s
-            · {result.summary.identical} identical hidden · {copy.sideLegend}
-          </p>
           {firstSync && (
-            <p className="warn-line">
-              First sync — confirm carefully. Bulk Use source is disabled unless
-              files are selected.
+            <p className="warn-line compact-warn">
+              First sync — confirm carefully. Bulk Use source needs a selection.
             </p>
           )}
           {rulesDirty && (
@@ -97,13 +100,14 @@ export function ReviewStep({
               Ignore rules changed — rescan before apply.
             </p>
           )}
-          <p className="muted tiny selection-hint">
-            {hasSelection
-              ? `Applying and bulk actions will use ${selectedIds.size} selected file(s) only.`
-              : copy.emptySelectionHint}
-          </p>
+          {hasSelection && (
+            <p className="muted tiny selection-hint">
+              Applying and bulk actions use {selectedIds.size} selected file(s)
+              only.
+            </p>
+          )}
         </div>
-        <div className="actions">
+        <div className="actions review-actions">
           <button
             type="button"
             className="btn"
@@ -126,7 +130,7 @@ export function ReviewStep({
           </button>
           <button
             type="button"
-            className="btn primary large"
+            className="btn primary"
             disabled={applying || rulesDirty}
             onClick={onApply}
           >
@@ -140,20 +144,20 @@ export function ReviewStep({
       </div>
 
       {result.warnings.length > 0 && (
-        <ul className="warn-list">
-          {result.warnings.slice(0, 5).map((w) => (
+        <ul className="warn-list compact-warn-list">
+          {result.warnings.slice(0, 3).map((w) => (
             <li key={w}>{w}</li>
           ))}
         </ul>
       )}
 
-      <div className="filter-bar">
+      <div className="filter-bar compact">
         {(
           [
-            ["needsYou", copy.filterConflict],
-            ["bringIn", copy.filterBringIn],
-            ["keep", copy.filterKeep],
-            ["deletions", `Deletions (${result.summary.deletedBrought})`],
+            ["needsYou", `${copy.filterConflict} ${s.needsYou}`],
+            ["bringIn", `${copy.filterBringIn} ${s.bringIn}`],
+            ["keep", `${copy.filterKeep} ${s.keep}`],
+            ["deletions", `Deletions ${s.deletedBrought}`],
             ["other", "Env / secret"],
             ["all", "All changes"],
           ] as const
@@ -200,10 +204,6 @@ export function ReviewStep({
           ) : (
             <div className="fallback-panel compact diff-placeholder">
               <p>Select a file in the tree to view its diff here.</p>
-              <p className="muted tiny">
-                Split and Unified views stay in this pane — the file list stays
-                visible.
-              </p>
             </div>
           )}
         </div>
