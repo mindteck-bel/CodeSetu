@@ -100,6 +100,9 @@ describe("label mapping", () => {
     expect(copy.applyButton).toBe("Apply all");
     expect(copy.destinationEyebrow).toContain("Destination");
     expect(copy.sourceEyebrow).toContain("Source");
+    expect(copy.reviewArrow).toContain("→");
+    expect(copy.diffLeftTitle.toLowerCase()).toContain("source");
+    expect(copy.diffRightTitle.toLowerCase()).toContain("mine");
     expect(changeClassLabel("flexible", "addedBrought")).toBe("New on source");
     expect(changeClassLabel("flexible", "intranetOnly")).toBe(
       "Destination only",

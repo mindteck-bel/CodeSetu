@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getFileDiff } from "../../shared/api";
 import {
   keepActionLabel,
@@ -8,6 +8,7 @@ import {
 } from "../../shared/compareMode";
 import { folderCaption } from "../../shared/folderLabel";
 import type { Decision, FileDiff, FileRow } from "../../shared/types";
+import { alignSplitHunks, gapPlaceholder } from "./alignedDiff";
 
 export type DiffLayout = "split" | "unified";
 
@@ -60,6 +61,11 @@ export function DiffViewer({
     };
   }, [sessionId, relPath]);
 
+  const aligned = useMemo(
+    () => (diff?.kind === "text" ? alignSplitHunks(diff.hunks) : []),
+    [diff],
+  );
+
   const isDeletion = row?.class === "deletedBrought";
   const actionsDisabled =
     !row ||
@@ -72,7 +78,7 @@ export function DiffViewer({
       <div className="diff-header">
         <div className="diff-header-text">
           <p className="eyebrow">
-            {dest.name} (left) vs {source.name} (right)
+            {source.name} (source) → {dest.name} (destination)
           </p>
           <h3>{relPath}</h3>
           <p className="muted tiny">{copy.diffHint}</p>
@@ -150,42 +156,54 @@ export function DiffViewer({
             </div>
           )}
           {diff.kind === "text" && layout === "split" && (
-            <div className="diff-grid">
-              <div className="diff-col">
-                <div className="diff-col-title" title={dest.full || undefined}>
-                  <span className="diff-folder-name">{dest.name}</span>
-                  <span className="diff-folder-role">{copy.diffLeftTitle}</span>
-                  {dest.pathHint ? (
-                    <span className="diff-folder-path">{dest.pathHint}</span>
-                  ) : null}
-                </div>
-                <pre className="diff-body">
-                  {diff.hunks.map((h, i) =>
-                    h.tag === "insert" ? null : (
-                      <span key={i} className={`hunk ${h.tag}`}>
-                        {h.thisText}
-                      </span>
-                    ),
-                  )}
-                </pre>
-              </div>
-              <div className="diff-col">
+            <div className="diff-grid aligned">
+              <div className="diff-col-headers">
                 <div className="diff-col-title" title={source.full || undefined}>
                   <span className="diff-folder-name">{source.name}</span>
-                  <span className="diff-folder-role">{copy.diffRightTitle}</span>
+                  <span className="diff-folder-role">{copy.diffLeftTitle}</span>
                   {source.pathHint ? (
                     <span className="diff-folder-path">{source.pathHint}</span>
                   ) : null}
                 </div>
-                <pre className="diff-body">
-                  {diff.hunks.map((h, i) =>
-                    h.tag === "delete" ? null : (
-                      <span key={i} className={`hunk ${h.tag}`}>
-                        {h.broughtText}
-                      </span>
-                    ),
-                  )}
-                </pre>
+                <div className="diff-col-title" title={dest.full || undefined}>
+                  <span className="diff-folder-name">{dest.name}</span>
+                  <span className="diff-folder-role">{copy.diffRightTitle}</span>
+                  {dest.pathHint ? (
+                    <span className="diff-folder-path">{dest.pathHint}</span>
+                  ) : null}
+                </div>
+              </div>
+              <div className="diff-scroll" tabIndex={0}>
+                <div className="diff-aligned-body">
+                  {aligned.map((rowAlign) => {
+                    const sourceGap = rowAlign.sourceText === null;
+                    const destGap = rowAlign.destText === null;
+                    const gapFrom =
+                      rowAlign.sourceText ?? rowAlign.destText ?? "\n";
+                    return (
+                      <div key={rowAlign.key} className="diff-aligned-row">
+                        <pre
+                          className={`diff-cell hunk ${
+                            sourceGap ? "gap" : rowAlign.kind
+                          }`}
+                        >
+                          {sourceGap
+                            ? gapPlaceholder(gapFrom)
+                            : rowAlign.sourceText}
+                        </pre>
+                        <pre
+                          className={`diff-cell hunk ${
+                            destGap ? "gap" : rowAlign.kind
+                          }`}
+                        >
+                          {destGap
+                            ? gapPlaceholder(gapFrom)
+                            : rowAlign.destText}
+                        </pre>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

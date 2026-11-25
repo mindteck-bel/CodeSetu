@@ -98,13 +98,13 @@ export const DEMO_DIFF = {
     },
     {
       tag: "delete",
-      thisText: '  "version": "0.1.0",\n',
+      thisText: '  "version": "0.1.0",\n  "legacy": true,\n',
       broughtText: "",
     },
     {
       tag: "insert",
       thisText: "",
-      broughtText: '  "version": "0.2.0",\n',
+      broughtText: '  "version": "0.2.0",\n  "phase": "pilot",\n',
     },
     {
       tag: "equal",

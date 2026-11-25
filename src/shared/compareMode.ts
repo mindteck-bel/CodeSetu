@@ -48,7 +48,7 @@ export function writeComparePrefs(prefs: ComparePrefs): void {
   }
 }
 
-/** Apply always mutates only the destination folder (This PC / left). */
+/** Apply always mutates only the destination folder (This PC / right). */
 export function applyTargetSide(_mode: CompareMode): ApplyTargetSide {
   return "destination";
 }
@@ -123,9 +123,9 @@ const AIRGAP: ModeCopy = {
   chooseSource: "Choose Internet folder",
   dialogDestination: "Choose Intranet folder on This PC (will be updated)",
   dialogSource: "Choose Internet folder (read only)",
-  reviewArrow: "Mine (Intranet) ← Source (Internet)",
+  reviewArrow: "Source (Internet) → Mine (Intranet)",
   sideLegend:
-    "Left = mine (Intranet on This PC) · Right = source (Internet, read-only). Conflicts need an explicit choice.",
+    "Left = source (Internet, read-only) · Right = mine (Intranet on This PC). Conflicts need an explicit choice.",
   bringInto: "Use source",
   keep: "Keep mine",
   keepVersion: "Keep mine",
@@ -140,10 +140,11 @@ const AIRGAP: ModeCopy = {
     "This will write to This PC (Intranet) only. The Internet folder is never modified.",
   deleteWarning:
     "Deletions remove files from Intranet (mine). This is never labeled “Use source.”",
-  diffEyebrow: "Mine (left) vs source (right)",
-  diffHint: "Use source takes the right side. Keep mine keeps the left.",
-  diffLeftTitle: "Mine (Intranet)",
-  diffRightTitle: "Source (Internet)",
+  diffEyebrow: "Source (left) → mine (right)",
+  diffHint:
+    "Use source takes the left side onto destination (right). Keep mine keeps the right.",
+  diffLeftTitle: "Source (Internet)",
+  diffRightTitle: "Mine (Intranet)",
   binaryHint:
     "Use source or Keep mine on the whole file — text hunks are not shown.",
   filterBringIn: "Use source",
@@ -187,9 +188,9 @@ const FLEXIBLE: ModeCopy = {
   chooseSource: "Choose source folder",
   dialogDestination: "Choose destination folder on This PC (will be updated)",
   dialogSource: "Choose source folder (read only)",
-  reviewArrow: "Mine (destination) ← Source",
+  reviewArrow: "Source → Mine (destination)",
   sideLegend:
-    "Left = mine (destination on This PC) · Right = source (read-only). Conflicts need an explicit choice.",
+    "Left = source (read-only) · Right = mine (destination on This PC). Conflicts need an explicit choice.",
   bringInto: "Use source",
   keep: "Keep mine",
   keepVersion: "Keep mine",
@@ -204,10 +205,11 @@ const FLEXIBLE: ModeCopy = {
     "This will write to the destination folder on This PC only. The source folder is never modified.",
   deleteWarning:
     "Deletions remove files from the destination (mine). This is never labeled “Use source.”",
-  diffEyebrow: "Mine (left) vs source (right)",
-  diffHint: "Use source takes the right side. Keep mine keeps the left.",
-  diffLeftTitle: "Mine (destination)",
-  diffRightTitle: "Source",
+  diffEyebrow: "Source (left) → mine (right)",
+  diffHint:
+    "Use source takes the left side onto destination (right). Keep mine keeps the right.",
+  diffLeftTitle: "Source",
+  diffRightTitle: "Mine (destination)",
   binaryHint:
     "Use source or Keep mine on the whole file — text hunks are not shown.",
   filterBringIn: "Use source",
